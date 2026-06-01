@@ -75,6 +75,8 @@ def test_proxy_provider_runtime_selects_targets_and_providers() -> None:
             "anthropic": SimpleNamespace(name="anthropic"),
             "openai": SimpleNamespace(name="openai"),
         },
+        custom_upstream_header_enabled=True,
+        custom_upstream_allowed_hosts=("azure.example",),
     )
 
     assert runtime.api_target("anthropic") == "https://anthropic.example"

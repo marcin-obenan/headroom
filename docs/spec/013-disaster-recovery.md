@@ -133,7 +133,7 @@ services:
   headroom-1:
     image: headroom-ai/headroom:latest
     ports:
-      - "8787:8787"
+      - "127.0.0.1:8787:8787"
 
   headroom-2:
     image: headroom-ai/headroom:latest

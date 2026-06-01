@@ -42,10 +42,10 @@ fn bench_classify(c: &mut Criterion) {
         b.iter(|| classify(black_box(&payg)))
     });
 
-    // OAuth — JWT, three segments, last branch in the bearer match.
+    // OAuth — three segments, last branch in the bearer match.
     let oauth = build_headers(&[(
         "authorization",
-        "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4iLCJpYXQiOjE1MTYyMzkwMjJ9.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+        "Bearer fake-header.fake-payload.fake-signature",
     )]);
     group.bench_function("oauth_jwt", |b| b.iter(|| classify(black_box(&oauth))));
 

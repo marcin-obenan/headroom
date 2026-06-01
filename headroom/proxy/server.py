@@ -123,9 +123,14 @@ from headroom.proxy.helpers import (
     _get_rtk_stats,  # noqa: F401
     _read_request_json,  # noqa: F401
     _setup_file_logging,  # noqa: F401
+    hash_query_for_log,
     initialize_context_tool_session_baseline,
     is_anthropic_auth,  # noqa: F401
     jitter_delay_ms,
+)
+from headroom.proxy.local_security import (
+    default_loopback_origins,
+    local_proxy_guard_response,
 )
 from headroom.proxy.memory_handler import MemoryConfig, MemoryHandler
 
@@ -1670,12 +1675,15 @@ def create_app(config: ProxyConfig | None = None) -> FastAPI:
             }
         return payload
 
-    # CORS
+    cors_allowed_origins = config.cors_allowed_origins or default_loopback_origins(config.port)
+
+    # CORS: default to local origins only. Same-origin dashboard requests do not
+    # need CORS; this only permits explicitly local browser tooling.
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
+        allow_origins=cors_allowed_origins,
+        allow_credentials=False,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=["*"],
     )
 
@@ -1690,6 +1698,13 @@ def create_app(config: ProxyConfig | None = None) -> FastAPI:
         path = request.url.path
         method = request.method
         query = request.url.query
+        rejection = local_proxy_guard_response(
+            request,
+            enabled=proxy.config.local_control_guard_enabled,
+            allowed_origins=cors_allowed_origins,
+        )
+        if rejection is not None:
+            return rejection
         headers = dict(request.headers.items())
         client = getattr(request, "client", None)
         client_addr = ""
@@ -1707,13 +1722,14 @@ def create_app(config: ProxyConfig | None = None) -> FastAPI:
             safe_headers = redact_for_wire_debug(headers)
         except Exception:
             safe_headers = {"redaction_error": True}
+        safe_query = f"query_hash={hash_query_for_log(query)}" if query else ""
         logger.info(
             "event=proxy_inbound_request id=%s method=%s path=%s query=%s client=%s "
             "content_length=%s headers=%s",
             inbound_id,
             method,
             path,
-            query,
+            safe_query,
             client_addr,
             request.headers.get("content-length", ""),
             json.dumps(safe_headers, ensure_ascii=False, default=str),
@@ -2455,7 +2471,10 @@ def create_app(config: ProxyConfig | None = None) -> FastAPI:
             Full retrieval: {"hash": "...", "original_content": "...", ...}
             Search: {"hash": "...", "query": "...", "results": [...], "count": N}
         """
-        data = await request.json()
+        try:
+            data = await _read_request_json(request)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
         hash_key = data.get("hash")
         query = data.get("query")
 
@@ -2633,7 +2652,10 @@ def create_app(config: ProxyConfig | None = None) -> FastAPI:
         Request body: Telemetry export data from /v1/telemetry/export
         """
         telemetry = get_telemetry_collector()
-        data = await request.json()
+        try:
+            data = await _read_request_json(request)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
         telemetry.import_stats(data)
         return {"status": "imported", "current_stats": telemetry.get_stats()}
 
@@ -2840,7 +2862,10 @@ def create_app(config: ProxyConfig | None = None) -> FastAPI:
                 "data": {...}  # Raw retrieval data
             }
         """
-        data = await request.json()
+        try:
+            data = await _read_request_json(request)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
         tool_call = data.get("tool_call", {})
         provider = data.get("provider", "anthropic")
 
@@ -2961,6 +2986,12 @@ def _proxy_config_from_env() -> ProxyConfig:
         max_keepalive_connections=_get_env_int("HEADROOM_MAX_KEEPALIVE", 100),
         http2=_get_env_bool("HEADROOM_HTTP2", True),
         mode=normalize_proxy_mode(_get_env_str("HEADROOM_MODE", PROXY_MODE_TOKEN)),
+        custom_upstream_header_enabled=_get_env_bool(
+            "HEADROOM_CUSTOM_UPSTREAM_HEADER_ENABLED", False
+        ),
+        custom_upstream_allowed_hosts=_get_env_list("HEADROOM_CUSTOM_UPSTREAM_ALLOWED_HOSTS"),
+        cors_allowed_origins=_get_env_list("HEADROOM_CORS_ALLOWED_ORIGINS"),
+        local_control_guard_enabled=_get_env_bool("HEADROOM_LOCAL_CONTROL_GUARD_ENABLED", True),
     )
 
 
@@ -3121,6 +3152,12 @@ def _get_env_int(name: str, default: int) -> int:
         return int(val)
     except ValueError:
         return default
+
+
+def _get_env_list(name: str) -> list[str]:
+    """Get a comma-separated list from an environment variable."""
+    val = os.environ.get(name, "")
+    return [item.strip() for item in val.split(",") if item.strip()]
 
 
 def _get_env_float(name: str, default: float) -> float:

@@ -205,6 +205,7 @@ def _start_proxy(
     # Ensure proxy subprocess uses UTF-8 (Windows defaults to cp1252)
     proxy_env = os.environ.copy()
     proxy_env["PYTHONIOENCODING"] = "utf-8"
+    proxy_env.setdefault("HEADROOM_TELEMETRY", "off")
 
     # Tell the proxy which agent is being wrapped (for traffic learning output)
     if agent_type != "unknown":

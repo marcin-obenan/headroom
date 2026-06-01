@@ -2,9 +2,17 @@
 
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parent.parent
+
+
+def _require_cargo() -> None:
+    if shutil.which("cargo") is None:
+        pytest.skip("cargo is required")
 
 
 def test_docker_workflow_normalizes_repository_name_for_signing() -> None:
@@ -76,6 +84,17 @@ def test_ci_commitlint_skips_default_github_merge_commits() -> None:
     assert "!startsWith(github.event.head_commit.message, 'Merge pull request ')" in content
 
 
+def test_security_workflow_hard_fails_secret_vuln_and_config_scans() -> None:
+    content = (ROOT / ".github" / "workflows" / "security.yml").read_text(encoding="utf-8")
+
+    assert "permissions:\n  contents: read" in content
+    assert "gitleaks/gitleaks-action@v2" in content
+    assert "GITLEAKS_CONFIG: .gitleaks.toml" in content
+    assert "aquasecurity/trivy-action@0.33.1" in content
+    assert "scanners: vuln,misconfig" in content
+    assert 'exit-code: "1"' in content
+
+
 def test_no_openssl_sys_in_wheel_build_tree() -> None:
     """STRUCTURAL INVARIANT: openssl-sys must NOT appear in the wheel
     build's resolved dependency graph.
@@ -102,6 +121,8 @@ def test_no_openssl_sys_in_wheel_build_tree() -> None:
     wheel-build error.
     """
     import subprocess
+
+    _require_cargo()
 
     for crate in ("headroom-py", "headroom-proxy", "headroom-core"):
         result = subprocess.run(
@@ -143,6 +164,8 @@ def test_no_native_tls_in_wheel_build_tree() -> None:
     place.
     """
     import subprocess
+
+    _require_cargo()
 
     for crate in ("headroom-py", "headroom-proxy", "headroom-core"):
         result = subprocess.run(

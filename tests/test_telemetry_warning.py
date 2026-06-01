@@ -97,7 +97,7 @@ class TestProxyCLITelemetryBanner:
         return CliRunner()
 
     def test_banner_shows_telemetry_enabled(self, runner, monkeypatch):
-        monkeypatch.delenv("HEADROOM_TELEMETRY", raising=False)
+        monkeypatch.setenv("HEADROOM_TELEMETRY", "on")
 
         from headroom.cli.main import main
 
@@ -130,7 +130,7 @@ class TestProxyCLITelemetryBanner:
         assert "DISABLED" in result.output
 
     def test_banner_shows_opt_out_instructions_when_enabled(self, runner, monkeypatch):
-        monkeypatch.delenv("HEADROOM_TELEMETRY", raising=False)
+        monkeypatch.setenv("HEADROOM_TELEMETRY", "on")
 
         from headroom.cli.main import main
 
@@ -202,7 +202,7 @@ class TestStatsEndpointTelemetryFlag:
     pytest.importorskip("fastapi")
 
     async def test_stats_includes_anon_telemetry_shipping_true(self, monkeypatch):
-        monkeypatch.delenv("HEADROOM_TELEMETRY", raising=False)
+        monkeypatch.setenv("HEADROOM_TELEMETRY", "on")
         from headroom.proxy.server import ProxyConfig, create_app
 
         app = create_app(
@@ -224,7 +224,7 @@ class TestStatsEndpointTelemetryFlag:
         assert data["anon_telemetry_shipping"] is True
 
     async def test_stats_includes_anon_telemetry_shipping_false(self, monkeypatch):
-        monkeypatch.setenv("HEADROOM_TELEMETRY", "off")
+        monkeypatch.delenv("HEADROOM_TELEMETRY", raising=False)
         from headroom.proxy.server import ProxyConfig, create_app
 
         app = create_app(

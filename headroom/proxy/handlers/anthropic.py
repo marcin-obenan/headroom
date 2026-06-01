@@ -2727,7 +2727,11 @@ class AnthropicHandlerMixin:
         client = classify_client(headers)
         tags = extract_tags(headers)
         # PR-A5 (P5-49): strip internal x-headroom-* before forwarding upstream.
-        from headroom.proxy.helpers import _strip_internal_headers, log_outbound_headers
+        from headroom.proxy.helpers import (
+            _read_limited_request_body,
+            _strip_internal_headers,
+            log_outbound_headers,
+        )
 
         _pre_strip_count = sum(1 for k in headers if k.lower().startswith("x-headroom-"))
         headers = _strip_internal_headers(headers)
@@ -2737,7 +2741,10 @@ class AnthropicHandlerMixin:
             request_id=None,
         )
 
-        body = await request.body()
+        try:
+            body = await _read_limited_request_body(request)
+        except ValueError as exc:
+            return Response(content=str(exc), status_code=413)
 
         response = await self.http_client.request(  # type: ignore[union-attr]
             method=request.method,

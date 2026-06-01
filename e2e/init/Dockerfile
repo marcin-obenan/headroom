@@ -4,7 +4,7 @@
 # `__isoc23_strtoll` (glibc 2.38+) that the same image's runtime libc
 # couldn't resolve. Building inside manylinux_2_28 (AlmaLinux 8, glibc
 # 2.28 baseline) yields a wheel portable to any glibc 2.28+ runtime.
-FROM quay.io/pypa/manylinux_2_28_x86_64 AS builder
+FROM quay.io/pypa/manylinux_2_28_x86_64:2026.05.31-1 AS builder
 
 # No OpenSSL system deps required (rustls-everywhere refactor). See
 # e2e/wrap/Dockerfile for the full rationale.
@@ -75,5 +75,10 @@ RUN python -m venv /opt/headroom-venv && \
     /opt/headroom-venv/bin/python -m pip install --upgrade pip && \
     /opt/headroom-venv/bin/python -m pip install "$(ls /tmp/wheels/headroom_ai-*.whl)[proxy]" && \
     /opt/headroom-venv/bin/python -c "from headroom._core import DiffCompressor; print('headroom._core OK')"
+
+RUN useradd --create-home --uid 10001 headroom && \
+    chown -R headroom:headroom /workspace /opt/headroom-venv
+
+USER headroom
 
 CMD ["python", "e2e/init/run.py"]

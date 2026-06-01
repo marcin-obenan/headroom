@@ -379,13 +379,17 @@ class BatchHandlerMixin:
         # None we forward the original bytes verbatim; otherwise the dict
         # has been synthesized by Headroom and is canonically serialized.
         from headroom.proxy.helpers import (
+            _read_limited_request_body,
             log_outbound_request,
             prepare_outbound_body_bytes,
             serialize_body_canonical,
         )
 
         if body is None:
-            body_content = await request.body()
+            try:
+                body_content = await _read_limited_request_body(request)
+            except ValueError as exc:
+                return Response(content=str(exc), status_code=413)
             outbound_source = "passthrough"
             body_mutated = False
         else:
@@ -496,7 +500,12 @@ class BatchHandlerMixin:
             else:
                 url = f"{url}?key={api_key}"
 
-        body = await request.body()
+        from headroom.proxy.helpers import _read_limited_request_body
+
+        try:
+            body = await _read_limited_request_body(request)
+        except ValueError as exc:
+            return Response(content=str(exc), status_code=413)
 
         response = await self.http_client.request(  # type: ignore[union-attr]
             method=request.method,

@@ -18,6 +18,10 @@ from click.testing import CliRunner
 
 
 def _load_init_module(monkeypatch):
+    cli_package = importlib.import_module("headroom.cli")
+    had_main_attr = hasattr(cli_package, "main")
+    original_main_attr = getattr(cli_package, "main", None)
+
     monkeypatch.delitem(sys.modules, "headroom.cli.init", raising=False)
     monkeypatch.delitem(sys.modules, "headroom.cli.main", raising=False)
     fake_main_module = types.ModuleType("headroom.cli.main")
@@ -31,6 +35,10 @@ def _load_init_module(monkeypatch):
     importlib.invalidate_caches()
     init_cli = importlib.import_module("headroom.cli.init")
     monkeypatch.delitem(sys.modules, "headroom.cli.init", raising=False)
+    if had_main_attr:
+        cli_package.main = original_main_attr
+    elif hasattr(cli_package, "main"):
+        del cli_package.main
     return init_cli, fake_main
 
 
@@ -126,8 +134,13 @@ def test_init_verbose_enables_debug_logging_on_stderr(monkeypatch) -> None:
 
     result = runner.invoke(fake_main, ["init", "-v", "-g"])
 
-    # Newer Click: stderr captured separately.
-    stderr = getattr(result, "stderr", None) or ""
+    # Newer Click: stderr captured separately. Some Click versions expose
+    # the property but raise when streams were mixed, so treat that like
+    # the older combined-output behavior.
+    try:
+        stderr = result.stderr or ""
+    except ValueError:
+        stderr = ""
     if not stderr:
         # Older Click: everything in result.output.
         stderr = result.output

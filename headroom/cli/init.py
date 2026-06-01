@@ -414,7 +414,7 @@ def _ensure_runtime_manifest(
         region=region,
         proxy_mode="token",
         memory_enabled=memory,
-        telemetry_enabled=True,
+        telemetry_enabled=False,
         image="ghcr.io/chopratejas/headroom:latest",
     )
     manifest.supervisor_kind = SupervisorKind.NONE.value
@@ -450,7 +450,7 @@ def _env_manifest(values: dict[str, str]) -> Any:
         region=None,
         proxy_mode="token",
         memory_enabled=False,
-        telemetry_enabled=True,
+        telemetry_enabled=False,
         image="ghcr.io/chopratejas/headroom:latest",
     )
 

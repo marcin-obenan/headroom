@@ -26,7 +26,7 @@ headroom proxy [OPTIONS]
 | `--memory` | `false` | Enable persistent memory |
 | `--learn` | `false` | Enable live traffic learning |
 | `--backend` | `anthropic` | Backend: anthropic, bedrock, openrouter, anyllm, or litellm-* |
-| `--no-telemetry` | `false` | Disable anonymous telemetry |
+| `--telemetry` | `false` | Enable anonymous aggregate telemetry |
 | `--stateless` | `false` | Disable filesystem writes |
 
 ---
@@ -231,7 +231,7 @@ X-Headroom-Compressed-Tokens: 5325
 | `HEADROOM_MAX_CONNECTIONS` | `500` | Maximum upstream HTTP connections |
 | `HEADROOM_MAX_KEEPALIVE` | `100` | Maximum upstream keep-alive connections |
 | `HEADROOM_BUDGET` | - | Daily budget limit in USD |
-| `HEADROOM_TELEMETRY` | enabled | Set to `off` to disable anonymous telemetry |
+| `HEADROOM_TELEMETRY` | disabled | Set to `on` to enable anonymous aggregate telemetry |
 | `HEADROOM_STATELESS` | `false` | Disable filesystem writes |
 
 ### Provider
@@ -247,7 +247,7 @@ X-Headroom-Compressed-Tokens: 5325
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `HEADROOM_TELEMETRY` | enabled | Set to `off` to disable telemetry |
+| `HEADROOM_TELEMETRY` | disabled | Set to `on` to enable anonymous aggregate telemetry |
 | `HEADROOM_MIN_EVIDENCE` | `5` | Minimum observations before live learning persists a pattern |
 | `HEADROOM_PROXY_EXTENSIONS` | - | Comma-separated proxy extensions to enable |
 | `HEADROOM_STATELESS` | `false` | Disable filesystem writes |

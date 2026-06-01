@@ -7,7 +7,7 @@
 # the runtime libc.so.6 doesn't have. Building inside the manylinux_2_28
 # container (AlmaLinux 8, glibc 2.28 baseline) guarantees the wheel works
 # on any glibc 2.28+ runtime, including bookworm.
-FROM quay.io/pypa/manylinux_2_28_x86_64 AS builder
+FROM quay.io/pypa/manylinux_2_28_x86_64:2026.05.31-1 AS builder
 
 # No OpenSSL system deps required. As of the rustls-everywhere refactor,
 # all HTTP+TLS in our Rust crates goes through `rustls`. fastembed's
@@ -111,5 +111,10 @@ RUN python -m venv /opt/headroom-venv && \
     npm install -g --no-fund --no-audit "@openai/codex@${CODEX_VERSION}" "openclaw@${OPENCLAW_VERSION}"
 
 COPY e2e/wrap ./e2e/wrap
+
+RUN useradd --create-home --uid 10001 headroom && \
+    chown -R headroom:headroom /workspace /opt/headroom-venv /opt/aider-venv
+
+USER headroom
 
 CMD ["python", "e2e/wrap/run.py"]

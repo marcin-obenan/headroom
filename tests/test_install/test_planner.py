@@ -77,6 +77,8 @@ def test_build_manifest_uses_provider_slice_env_builders_for_all_supported_targe
         "COPILOT_PROVIDER_BASE_URL": "http://127.0.0.1:9999/v1",
         "COPILOT_PROVIDER_WIRE_API": "completions",
     }
+    assert manifest.base_env["HEADROOM_TELEMETRY"] == "on"
+    assert "--telemetry" in manifest.proxy_args
 
 
 def test_resolve_targets_provider_scope_auto_excludes_copilot(monkeypatch) -> None:

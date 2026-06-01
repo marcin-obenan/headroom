@@ -21,6 +21,8 @@ def _app() -> Any:
             openai_api_url="https://api.openai.test",
             gemini_api_url="https://api.gemini.test",
             cloudcode_api_url="https://cloudcode.test",
+            custom_upstream_header_enabled=True,
+            custom_upstream_allowed_hosts=["azure.example", "custom.example"],
         )
     )
 
@@ -97,6 +99,10 @@ def test_proxy_route_helpers_prefer_legacy_targets_and_gemini_passthrough() -> N
             "ANTHROPIC_API_URL": "https://legacy.anthropic.test",
             "OPENAI_API_URL": "https://legacy.openai.test",
             "GEMINI_API_URL": "https://legacy.gemini.test",
+            "config": ProxyConfig(
+                custom_upstream_header_enabled=True,
+                custom_upstream_allowed_hosts=["azure.example"],
+            ),
             "provider_runtime": type(
                 "Runtime",
                 (),

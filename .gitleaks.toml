@@ -1,0 +1,10 @@
+[allowlist]
+description = "Synthetic test fixtures and generated local caches"
+paths = [
+  '''(^|/)benchmarks/''',
+  '''(^|/)crates/.*/benches/''',
+  '''(^|/)crates/.*/tests/''',
+  '''(^|/)tests/''',
+  '''(^|/)headroom/.*/__pycache__/''',
+  '''(^|/)\.venv-security/''',
+]

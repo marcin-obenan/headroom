@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import json
 import logging
 import os
@@ -72,6 +73,11 @@ STATS_TOOL_NAME = "headroom_stats"
 READ_TOOL_NAME = "headroom_read"
 
 logger = logging.getLogger("headroom.ccr.mcp")
+
+
+def _log_fingerprint(value: Any) -> tuple[str, int]:
+    raw = json.dumps(value, ensure_ascii=False, default=str, sort_keys=True)
+    return hashlib.sha256(raw.encode("utf-8", errors="replace")).hexdigest()[:16], len(raw)
 
 # Feature flag: enable headroom_read tool (file read caching via CCR)
 # Set HEADROOM_MCP_READ=on to enable
@@ -652,17 +658,24 @@ class HeadroomMCPServer:
             ]
 
         query = arguments.get("query")
+        query_hash, query_bytes = _log_fingerprint(query)
         logger.info(
-            "event=mcp_retrieve_started hash=%s query=%s",
+            "event=mcp_retrieve_started hash=%s query_hash=%s query_bytes=%d",
             hash_key,
-            json.dumps(query, ensure_ascii=False, default=str),
+            query_hash,
+            query_bytes,
         )
         result = await self._retrieve_content(hash_key, query)
+        result_hash, result_bytes = _log_fingerprint(result)
+        result_keys = sorted(result.keys()) if isinstance(result, dict) else []
         logger.info(
-            "event=mcp_retrieve_completed hash=%s query=%s result=%s",
+            "event=mcp_retrieve_completed hash=%s query_hash=%s result_hash=%s "
+            "result_bytes=%d result_keys=%s",
             hash_key,
-            json.dumps(query, ensure_ascii=False, default=str),
-            json.dumps(result, ensure_ascii=False, default=str),
+            query_hash,
+            result_hash,
+            result_bytes,
+            ",".join(str(key) for key in result_keys),
         )
 
         return [TextContent(type="text", text=json.dumps(result, indent=2))]

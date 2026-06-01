@@ -1,6 +1,5 @@
 ARG PYTHON_VERSION=3.13
 ARG UV_VERSION=0.11.16
-ARG DISTROLESS_IMAGE=gcr.io/distroless/python3-debian13
 ARG PYTHON_SITE_PACKAGES=/usr/local/lib/python${PYTHON_VERSION}/site-packages
 
 # ---- Build stage: compile native extensions, build wheel ----
@@ -57,7 +56,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # startup check on every restart. Run from /tmp so cwd doesn't shadow
 # site-packages with /build/headroom/ (which has no _core.so since
 # maturin installed the .so into site-packages).
-RUN cd /tmp && python -c "from headroom._core import DiffCompressor, SmartCrusher; \
+WORKDIR /tmp
+RUN python -c "from headroom._core import DiffCompressor, SmartCrusher; \
     print(f'build-stage rust core verify OK: {DiffCompressor.__name__}, {SmartCrusher.__name__}')"
 
 # ---- Runtime stage (python-slim): supports root/nonroot via build arg ----
@@ -98,7 +98,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
 ENTRYPOINT ["headroom", "proxy"]
 CMD ["--host", "0.0.0.0", "--port", "8787"]
 
-FROM ${DISTROLESS_IMAGE} AS runtime-slim
+FROM gcr.io/distroless/python3-debian13:nonroot AS runtime-slim
 
 ARG RUNTIME_USER=nonroot
 ARG PYTHON_SITE_PACKAGES

@@ -421,9 +421,9 @@ def _selected_context_tool() -> str:
     help="AWS profile name for Bedrock (default: use default credentials)",
 )
 @click.option(
-    "--no-telemetry",
-    is_flag=True,
-    help="Disable anonymous usage telemetry (env: HEADROOM_TELEMETRY=off)",
+    "--telemetry/--no-telemetry",
+    default=None,
+    help="Enable anonymous aggregate telemetry (env: HEADROOM_TELEMETRY=on)",
 )
 @click.option(
     "--stateless",
@@ -485,7 +485,7 @@ def proxy(
     region: str,
     bedrock_region: str | None,
     bedrock_profile: str | None,
-    no_telemetry: bool,
+    telemetry: bool | None,
     stateless: bool,
 ) -> None:
     """Start the optimization proxy server.
@@ -561,8 +561,10 @@ def proxy(
         "on",
     )
 
-    # Telemetry opt-out: --no-telemetry flag sets the env var
-    if no_telemetry:
+    # Telemetry is opt-in by default; the flag pair lets CLI usage override env.
+    if telemetry is True:
+        os.environ["HEADROOM_TELEMETRY"] = "on"
+    elif telemetry is False:
         os.environ["HEADROOM_TELEMETRY"] = "off"
 
     if codex_wire_debug or codex_wire_debug_dir:
@@ -715,7 +717,7 @@ def proxy(
         backend_section = f"""
 IMPORTANT for {provider_config.display_name} users:
   1. Set credentials: {env_vars_str}
-  2. Set a dummy Anthropic key: ANTHROPIC_API_KEY="sk-ant-dummy"
+  2. Set a dummy Anthropic key: ANTHROPIC_API_KEY="not-a-real-key"
      (Headroom ignores this - it uses your {provider_config.display_name} credentials)
   3. Set base URL: ANTHROPIC_BASE_URL=http://{config.host}:{config.port}"""
         if provider_config.model_format_hint:

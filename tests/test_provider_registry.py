@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 
+import pytest
+
 from headroom.providers.registry import (
     ProviderApiOverrides,
     build_proxy_provider_runtime,
@@ -88,6 +90,12 @@ def test_format_backend_status_for_anthropic_direct() -> None:
 
 def test_proxy_provider_runtime_routes_model_metadata_and_passthrough() -> None:
     runtime = build_proxy_provider_runtime(ProxyConfig())
+    runtime_with_custom_upstream = build_proxy_provider_runtime(
+        ProxyConfig(
+            custom_upstream_header_enabled=True,
+            custom_upstream_allowed_hosts=["azure.example"],
+        )
+    )
 
     assert runtime.model_metadata_provider({"x-api-key": "test"}) == "anthropic"
     assert runtime.model_metadata_provider({}) == "openai"
@@ -101,6 +109,16 @@ def test_proxy_provider_runtime_routes_model_metadata_and_passthrough() -> None:
     assert runtime.select_passthrough_base_url({"api-key": "azure", "x-headroom-base-url": ""}) == (
         runtime.api_targets.openai
     )
+    assert (
+        runtime_with_custom_upstream.select_passthrough_base_url(
+            {"api-key": "azure", "x-headroom-base-url": "https://azure.example/openai/"}
+        )
+        == "https://azure.example/openai"
+    )
+    with pytest.raises(ValueError):
+        runtime.select_passthrough_base_url(
+            {"api-key": "azure", "x-headroom-base-url": "https://azure.example/openai/"}
+        )
 
 
 def test_create_proxy_backend_handles_missing_litellm_backend(caplog) -> None:

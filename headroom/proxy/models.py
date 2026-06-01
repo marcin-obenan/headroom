@@ -97,6 +97,12 @@ class ProxyConfig:
     gemini_api_url: str | None = None  # Custom Gemini API URL override
     cloudcode_api_url: str | None = None  # Custom Cloud Code Assist API URL override
 
+    # Local proxy hardening
+    local_control_guard_enabled: bool = True
+    cors_allowed_origins: list[str] = field(default_factory=list)
+    custom_upstream_header_enabled: bool = False
+    custom_upstream_allowed_hosts: list[str] = field(default_factory=list)
+
     # Backend: "anthropic" (direct API), "litellm-*" (via LiteLLM), or "anyllm" (via any-llm)
     backend: str = "anthropic"
     bedrock_region: str = "us-west-2"

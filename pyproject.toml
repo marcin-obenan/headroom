@@ -47,11 +47,16 @@ dependencies = [
     # Core: lightweight compression (SmartCrusher, ContentRouter, CCR, TOIN)
     "tiktoken>=0.5.0",            # Tokenizer for all compressors
     "pydantic>=2.0.0",            # Config and data models
-    "litellm==1.82.3",            # Model registry, pricing, and provider support
+    "litellm==1.86.2",            # Model registry, pricing, and provider support
     "click>=8.1.0",               # CLI framework
     "rich>=13.0.0",               # Rich terminal output
     "opentelemetry-api>=1.24.0",  # Safe no-op OTEL API for instrumentation
     "ast-grep-cli>=0.30.0",       # AST-aware code slicing (CodeCompressor); binary wheel
+    # Security floors for transitive packages pulled into normal proxy installs.
+    "aiohttp>=3.13.4",
+    "idna>=3.15",
+    "python-dotenv>=1.2.2",
+    "requests>=2.33.0",
     "tomli>=2.0.0; python_version < '3.11'",  # tomllib backport for helper scripts
 ]
 
@@ -124,7 +129,7 @@ relevance = [
 # `headroom/image/compressor.py` adapts both API shapes at runtime via
 # a try/except cascade. See issue #372 for context.
 image = [
-    "pillow>=10.0.0",
+    "pillow>=12.2.0",
     "sentencepiece>=0.1.99",  # Required by SigLIP tokenizer (SiglipTokenizer)
     # Python 3.6–3.12: keep the proven ORT-bundled package directly.
     # ~15 MB ONNX models auto-downloaded on first use.
@@ -195,16 +200,17 @@ bedrock = [
 # HTML content extraction
 html = [
     "trafilatura>=1.6.0",
+    "lxml-html-clean>=0.4.4",
 ]
 # Comprehensive LLM benchmarks
 benchmark = [
-    "lm-eval[api]>=0.4.0",
+    "lm-eval[api]>=0.4.12",
     "openai>=1.0.0",
     "anthropic>=0.18.0",
 ]
 # Development dependencies
 dev = [
-    "pytest>=7.0.0",
+    "pytest>=9.0.3",
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.21.0",
     "ruff>=0.1.0",
@@ -212,7 +218,20 @@ dev = [
     "pre-commit>=3.0.0",
     "openai>=1.0.0",
     "anthropic>=0.18.0",
-    "litellm==1.82.3",
+    "litellm==1.86.2",
+    # Security floors for transitive packages present in the full lockfile.
+    "cryptography>=46.0.5",
+    "gitpython>=3.1.50",
+    "langchain-core>=1.3.3",
+    "langsmith>=0.8.0",
+    "lxml>=6.1.0",
+    "lxml-html-clean>=0.4.4",
+    "orjson>=3.11.6",
+    "pillow>=12.2.0",
+    "protobuf>=6.33.5",
+    "pyjwt>=2.12.0",
+    "python-multipart>=0.0.27",
+    "urllib3>=2.7.0",
     "fastapi>=0.100.0",
     "uvicorn>=0.23.0",
     "httpx[http2]>=0.24.0",
