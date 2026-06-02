@@ -79,6 +79,7 @@ def _log_fingerprint(value: Any) -> tuple[str, int]:
     raw = json.dumps(value, ensure_ascii=False, default=str, sort_keys=True)
     return hashlib.sha256(raw.encode("utf-8", errors="replace")).hexdigest()[:16], len(raw)
 
+
 # Feature flag: enable headroom_read tool (file read caching via CCR)
 # Set HEADROOM_MCP_READ=on to enable
 _READ_ENABLED = os.environ.get("HEADROOM_MCP_READ", "off").lower().strip() in (

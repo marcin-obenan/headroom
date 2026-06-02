@@ -54,6 +54,9 @@ class _PassthroughRequest:
     async def body(self) -> bytes:
         return b""
 
+    async def stream(self):
+        yield await self.body()
+
 
 class _RetryThenSuccessClient:
     def __init__(self) -> None:

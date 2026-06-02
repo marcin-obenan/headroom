@@ -61,6 +61,16 @@ unconfigured upstream targets.
    - Database sidecars must not publish unauthenticated ports by default.
    - Example database credentials must not be static defaults.
 
+8. **Developer setup**
+   - The local proxy setup script must be idempotent.
+   - The local proxy setup script must install missing Claude Code and
+     OpenAI Codex CLIs by default.
+   - The installed Claude and Codex shell wrappers must run Headroom in token mode.
+   - The installed Claude and Codex shell wrappers must keep telemetry disabled by default.
+   - The installed Claude and Codex shell wrappers must keep the local security guard enabled.
+   - The installed tmux helpers must execute through an interactive shell so the
+     installed `claude` and `codex` wrappers are available.
+
 ## Non-Goals
 
 - This does not make Headroom a multi-user hosted service.

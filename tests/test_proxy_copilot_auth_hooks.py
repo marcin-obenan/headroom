@@ -144,7 +144,11 @@ def test_openai_passthrough_applies_copilot_auth(monkeypatch: pytest.MonkeyPatch
     async def body() -> bytes:
         return b""
 
+    async def stream():
+        yield await body()
+
     request.body = body
+    request.stream = stream
 
     handler = Dummy()
     response = asyncio.run(

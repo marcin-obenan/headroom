@@ -90,7 +90,8 @@ def test_security_workflow_hard_fails_secret_vuln_and_config_scans() -> None:
     assert "permissions:\n  contents: read" in content
     assert "gitleaks/gitleaks-action@v2" in content
     assert "GITLEAKS_CONFIG: .gitleaks.toml" in content
-    assert "aquasecurity/trivy-action@0.33.1" in content
+    assert "aquasecurity/trivy-action@v0.36.0" in content
+    assert "trivyignores: .trivyignore" in content
     assert "scanners: vuln,misconfig" in content
     assert 'exit-code: "1"' in content
 

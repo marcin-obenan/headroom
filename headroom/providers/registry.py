@@ -161,9 +161,7 @@ def build_proxy_provider_runtime(config: Any) -> ProxyProviderRuntime:
         custom_upstream_header_enabled=bool(
             getattr(config, "custom_upstream_header_enabled", False)
         ),
-        custom_upstream_allowed_hosts=tuple(
-            getattr(config, "custom_upstream_allowed_hosts", ())
-        ),
+        custom_upstream_allowed_hosts=tuple(getattr(config, "custom_upstream_allowed_hosts", ())),
     )
 
 

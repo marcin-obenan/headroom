@@ -142,6 +142,9 @@ class FakeRequest:
     async def body(self) -> bytes:
         return self._body
 
+    async def stream(self):
+        yield await self.body()
+
 
 def install_batch_support_modules(
     monkeypatch: pytest.MonkeyPatch,

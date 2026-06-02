@@ -25,11 +25,11 @@ jobs:
           GITLEAKS_CONFIG: .gitleaks.toml
 
       - name: Vulnerability and config scan
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
           scanners: vuln,misconfig
           severity: HIGH,CRITICAL
           exit-code: "1"
-          ignorefile: .trivyignore
+          trivyignores: .trivyignore

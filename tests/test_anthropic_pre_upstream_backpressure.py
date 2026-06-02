@@ -881,14 +881,6 @@ def test_early_exit_paths_release_semaphore_under_contention(scenario):
         elif scenario == "cache":
             handler.cache = _CacheHit()
 
-        req = _build_request(
-            {
-                "model": "claude-3-5-sonnet-latest",
-                "messages": [{"role": "user", "content": "hello"}],
-            },
-            {"authorization": "Bearer sk-ant-api-test"},
-        )
-
         # Drive several iterations to confirm each early-exit call fully
         # releases the semaphore rather than leaking a permit AND that the
         # exception type or response status matches the contract for this
@@ -897,6 +889,13 @@ def test_early_exit_paths_release_semaphore_under_contention(scenario):
         from fastapi import HTTPException
 
         for _ in range(3):
+            req = _build_request(
+                {
+                    "model": "claude-3-5-sonnet-latest",
+                    "messages": [{"role": "user", "content": "hello"}],
+                },
+                {"authorization": "Bearer sk-ant-api-test"},
+            )
             raised: BaseException | None = None
             result = None
             try:
