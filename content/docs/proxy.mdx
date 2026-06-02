@@ -11,8 +11,8 @@ The Headroom proxy is a standalone HTTP server that compresses all LLM traffic p
 # Basic usage
 headroom proxy
 
-# Custom loopback port
-headroom proxy --host 127.0.0.1 --port 8080
+# Custom host and port
+headroom proxy --host 0.0.0.0 --port 8080
 
 # With logging and budget
 headroom proxy \
@@ -20,7 +20,7 @@ headroom proxy \
   --budget 100.0
 ```
 
-Telemetry is disabled by default. Opt in with `HEADROOM_TELEMETRY=on` or `--telemetry`.
+Telemetry is enabled by default. Opt out with `HEADROOM_TELEMETRY=off` or `--no-telemetry`.
 
 ## CLI options
 
@@ -45,7 +45,7 @@ Telemetry is disabled by default. Opt in with `HEADROOM_TELEMETRY=on` or `--tele
 | `--anthropic-api-url` | Anthropic default | Custom Anthropic API URL |
 | `--gemini-api-url` | Gemini default | Custom Gemini API URL |
 | `--backend` | `anthropic` | Backend: `anthropic`, `bedrock`, `openrouter`, `anyllm`, or `litellm-<provider>` |
-| `--telemetry` | `false` | Enable anonymous aggregate telemetry |
+| `--no-telemetry` | `false` | Disable anonymous telemetry |
 | `--stateless` | `false` | Disable filesystem writes and keep runtime state in memory |
 
 ### Context management
@@ -217,60 +217,6 @@ headroom wrap aider
 headroom wrap cursor
 ```
 
-### Hardened Claude Code and Codex shell setup
-
-For a local setup where normal `claude ...` and `codex ...` commands should
-always run through the hardened token proxy, run:
-
-```bash
-scripts/setup-local-proxy.sh --shell auto
-```
-
-The setup script supports macOS and Linux. It creates a local `.venv-headroom`,
-installs the proxy extras, installs Claude Code and OpenAI Codex with npm when
-they are missing, and adds `claude` / `tclaude` plus `codex` / `tcodex` shell
-wrappers with these defaults:
-
-```bash
-HEADROOM_MODE=token
-HEADROOM_TELEMETRY=off
-HEADROOM_LOCAL_CONTROL_GUARD_ENABLED=true
-```
-
-If you want to manage CLI installation yourself, pass `--no-install-claude` or
-`--no-install-codex`.
-
-### Claude Desktop and ChatGPT Desktop
-
-Headroom can proxy clients that let you choose an API base URL, such as Claude
-Code, Codex, Cursor, Aider, and OpenAI-compatible SDKs. The first-party Claude
-Desktop and ChatGPT Desktop apps do not currently expose a supported setting for
-routing their model traffic through `http://127.0.0.1:8787`.
-
-Use this setup instead:
-
-```bash
-# Claude Code desktop-like workflow
-scripts/setup-local-proxy.sh --shell auto
-source ~/.zshrc   # or source ~/.bashrc
-claude
-
-# Codex / OpenAI-compatible desktop-like workflow
-codex
-```
-
-For tool access inside desktop apps, use their supported extension/app surfaces:
-
-- Claude Desktop: install local desktop extensions or configure local MCP
-  servers. This gives Claude tools, but it does not route Claude Desktop's model
-  calls through Headroom.
-- ChatGPT Desktop: use ChatGPT Apps/connectors where available. This gives
-  ChatGPT tools and data connections, but it does not route ChatGPT Desktop's
-  model calls through Headroom.
-
-Avoid OS-level TLS interception or certificate MITM as a workaround. Headroom is
-an API proxy, not a consumer desktop-app network interceptor.
-
 Or set the base URL manually:
 
 ```bash
@@ -300,7 +246,7 @@ OPENROUTER_API_KEY=sk-or-... headroom proxy --backend openrouter
 ## Environment variables
 
 ```bash
-export HEADROOM_HOST=127.0.0.1
+export HEADROOM_HOST=0.0.0.0
 export HEADROOM_PORT=8787
 export HEADROOM_BUDGET=100.0
 export OPENAI_TARGET_API_URL=https://custom.openai.endpoint.com
@@ -316,7 +262,7 @@ pip install gunicorn
 
 gunicorn headroom.proxy.server:app \
   --workers 4 \
-  --bind 127.0.0.1:8787 \
+  --bind 0.0.0.0:8787 \
   --worker-class uvicorn.workers.UvicornWorker
 ```
 

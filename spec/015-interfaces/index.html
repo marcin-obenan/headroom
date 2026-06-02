@@ -2195,7 +2195,7 @@
 | <code>--memory</code> | <code>false</code> | Enable persistent memory |
 | <code>--learn</code> | <code>false</code> | Enable live traffic learning |
 | <code>--backend</code> | <code>anthropic</code> | Backend: anthropic, bedrock, openrouter, anyllm, or litellm-* |
-| <code>--telemetry</code> | <code>false</code> | Enable anonymous aggregate telemetry |
+| <code>--no-telemetry</code> | <code>false</code> | Disable anonymous telemetry |
 | <code>--stateless</code> | <code>false</code> | Disable filesystem writes |</p>
 <hr />
 <h3 id="headroom-evals"><code>headroom evals</code><a class="headerlink" href="#headroom-evals" title="Permanent link">&para;</a></h3>
@@ -2419,8 +2419,8 @@
 </tr>
 <tr>
 <td><code>HEADROOM_TELEMETRY</code></td>
-<td>disabled</td>
-<td>Set to <code>on</code> to enable anonymous aggregate telemetry</td>
+<td>enabled</td>
+<td>Set to <code>off</code> to disable anonymous telemetry</td>
 </tr>
 <tr>
 <td><code>HEADROOM_STATELESS</code></td>
@@ -2473,8 +2473,8 @@
 <tbody>
 <tr>
 <td><code>HEADROOM_TELEMETRY</code></td>
-<td>disabled</td>
-<td>Set to <code>on</code> to enable anonymous aggregate telemetry</td>
+<td>enabled</td>
+<td>Set to <code>off</code> to disable telemetry</td>
 </tr>
 <tr>
 <td><code>HEADROOM_MIN_EVIDENCE</code></td>

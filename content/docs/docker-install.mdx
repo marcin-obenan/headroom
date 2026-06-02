@@ -63,7 +63,7 @@ For `proxy`, the wrapper publishes the selected port back to the host:
 
 ```bash
 docker run --rm -it \
-  -p 127.0.0.1:8787:8787 \
+  -p 8787:8787 \
   -v "$PWD:/workspace" \
   -w /workspace \
   ghcr.io/chopratejas/headroom:latest \
@@ -108,7 +108,7 @@ headroom install remove
 In Docker-native mode this surface is intentionally scoped to **persistent-docker**:
 
 - supported: `apply`, `status`, `start`, `stop`, `restart`, `remove`
-- supported flags: `--profile`, `--port`, `--backend`, `--anyllm-provider`, `--region`, `--mode`, `--memory`, `--telemetry`, `--no-telemetry`, `--image`
+- supported flags: `--profile`, `--port`, `--backend`, `--anyllm-provider`, `--region`, `--mode`, `--memory`, `--no-telemetry`, `--image`
 - not supported: `persistent-service`, `persistent-task`, or provider/user/system mutation flags such as `--scope`, `--providers`, and `--target`
 
 Those broader lifecycle and config-mutation flows still belong to the Python-native `headroom install ...` command.
