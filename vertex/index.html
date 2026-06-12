@@ -10,25 +10,31 @@
       
       
       
+        <link rel="canonical" href="https://chopratejas.github.io/headroom/vertex/">
       
+      
+        <link rel="prev" href="../integration-guide/">
+      
+      
+        <link rel="next" href="../langchain/">
       
       
         
       
       
-      <link rel="icon" href="/headroom/assets/images/favicon.png">
+      <link rel="icon" href="../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
-        <title>Headroom</title>
+        <title>Vertex AI - Headroom</title>
       
     
     
-      <link rel="stylesheet" href="/headroom/assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="/headroom/assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -47,9 +53,9 @@
       
     
     
-      <link rel="stylesheet" href="/headroom/stylesheets/extra.css">
+      <link rel="stylesheet" href="../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("/headroom/",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -73,6 +79,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#vertex-ai" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -85,7 +96,7 @@
 
 <header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="/headroom/." title="Headroom" class="md-header__button md-logo" aria-label="Headroom" data-md-component="logo">
+    <a href=".." title="Headroom" class="md-header__button md-logo" aria-label="Headroom" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12 18.54 7.37-5.74L21 14.07l-9 7-9-7 1.62-1.26zM12 16 3 9l9-7 9 7zm0-11.47L6.26 9 12 13.47 17.74 9z"/></svg>
@@ -105,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              
+              Vertex AI
             
           </span>
         </div>
@@ -217,7 +228,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/headroom/." class="md-tabs__link">
+      <a href=".." class="md-tabs__link">
         
   
   
@@ -238,7 +249,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/headroom/quickstart/" class="md-tabs__link">
+        <a href="../quickstart/" class="md-tabs__link">
           
   
   
@@ -260,7 +271,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/headroom/proxy/" class="md-tabs__link">
+        <a href="../proxy/" class="md-tabs__link">
           
   
   
@@ -278,11 +289,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="/headroom/integration-guide/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../integration-guide/" class="md-tabs__link">
           
   
   
@@ -304,7 +317,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/headroom/ARCHITECTURE/" class="md-tabs__link">
+        <a href="../ARCHITECTURE/" class="md-tabs__link">
           
   
   
@@ -326,7 +339,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/headroom/benchmarks/" class="md-tabs__link">
+        <a href="../benchmarks/" class="md-tabs__link">
           
   
   
@@ -348,7 +361,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/headroom/cli/" class="md-tabs__link">
+        <a href="../cli/" class="md-tabs__link">
           
   
   
@@ -370,7 +383,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/headroom/macos-deployment/" class="md-tabs__link">
+        <a href="../macos-deployment/" class="md-tabs__link">
           
   
   
@@ -412,7 +425,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="/headroom/." title="Headroom" class="md-nav__button md-logo" aria-label="Headroom" data-md-component="logo">
+    <a href=".." title="Headroom" class="md-nav__button md-logo" aria-label="Headroom" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12 18.54 7.37-5.74L21 14.07l-9 7-9-7 1.62-1.26zM12 16 3 9l9-7 9 7zm0-11.47L6.26 9 12 13.47 17.74 9z"/></svg>
@@ -442,7 +455,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/." class="md-nav__link">
+      <a href=".." class="md-nav__link">
         
   
   
@@ -535,7 +548,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/quickstart/" class="md-nav__link">
+      <a href="../quickstart/" class="md-nav__link">
         
   
   
@@ -563,7 +576,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/getting-started/" class="md-nav__link">
+      <a href="../getting-started/" class="md-nav__link">
         
   
   
@@ -591,7 +604,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/docker-install/" class="md-nav__link">
+      <a href="../docker-install/" class="md-nav__link">
         
   
   
@@ -619,7 +632,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/persistent-installs/" class="md-nav__link">
+      <a href="../persistent-installs/" class="md-nav__link">
         
   
   
@@ -647,7 +660,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/configuration/" class="md-nav__link">
+      <a href="../configuration/" class="md-nav__link">
         
   
   
@@ -752,7 +765,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/proxy/" class="md-nav__link">
+      <a href="../proxy/" class="md-nav__link">
         
   
   
@@ -780,7 +793,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/compression/" class="md-nav__link">
+      <a href="../compression/" class="md-nav__link">
         
   
   
@@ -808,7 +821,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/ccr/" class="md-nav__link">
+      <a href="../ccr/" class="md-nav__link">
         
   
   
@@ -836,7 +849,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/image-compression/" class="md-nav__link">
+      <a href="../image-compression/" class="md-nav__link">
         
   
   
@@ -864,7 +877,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/memory/" class="md-nav__link">
+      <a href="../memory/" class="md-nav__link">
         
   
   
@@ -892,7 +905,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/shared-context/" class="md-nav__link">
+      <a href="../shared-context/" class="md-nav__link">
         
   
   
@@ -920,7 +933,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/learn/" class="md-nav__link">
+      <a href="../learn/" class="md-nav__link">
         
   
   
@@ -952,8 +965,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -973,21 +988,22 @@
     
     
       
+        
+        
+      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
         
           
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
-        
-          
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
             
   
   
@@ -1005,7 +1021,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1023,7 +1039,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/integration-guide/" class="md-nav__link">
+      <a href="../integration-guide/" class="md-nav__link">
         
   
   
@@ -1048,10 +1064,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="/headroom/vertex/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vertex AI
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1067,6 +1110,59 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#configure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gemini-on-vertex" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gemini On Vertex
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#anthropic-publisher-on-vertex" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Anthropic Publisher On Vertex
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1079,7 +1175,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/langchain/" class="md-nav__link">
+      <a href="../langchain/" class="md-nav__link">
         
   
   
@@ -1107,7 +1203,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/agno/" class="md-nav__link">
+      <a href="../agno/" class="md-nav__link">
         
   
   
@@ -1135,7 +1231,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/strands/" class="md-nav__link">
+      <a href="../strands/" class="md-nav__link">
         
   
   
@@ -1163,7 +1259,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/mcp/" class="md-nav__link">
+      <a href="../mcp/" class="md-nav__link">
         
   
   
@@ -1262,7 +1358,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/ARCHITECTURE/" class="md-nav__link">
+      <a href="../ARCHITECTURE/" class="md-nav__link">
         
   
   
@@ -1290,7 +1386,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/transforms/" class="md-nav__link">
+      <a href="../transforms/" class="md-nav__link">
         
   
   
@@ -1318,7 +1414,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/text-compression/" class="md-nav__link">
+      <a href="../text-compression/" class="md-nav__link">
         
   
   
@@ -1346,7 +1442,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/llmlingua.md" class="md-nav__link">
+      <a href="../llmlingua.md" class="md-nav__link">
         
   
   
@@ -1443,7 +1539,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/benchmarks/" class="md-nav__link">
+      <a href="../benchmarks/" class="md-nav__link">
         
   
   
@@ -1471,7 +1567,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/LATENCY_BENCHMARKS/" class="md-nav__link">
+      <a href="../LATENCY_BENCHMARKS/" class="md-nav__link">
         
   
   
@@ -1499,7 +1595,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/LIMITATIONS/" class="md-nav__link">
+      <a href="../LIMITATIONS/" class="md-nav__link">
         
   
   
@@ -1604,7 +1700,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/cli/" class="md-nav__link">
+      <a href="../cli/" class="md-nav__link">
         
   
   
@@ -1632,7 +1728,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/api/" class="md-nav__link">
+      <a href="../api/" class="md-nav__link">
         
   
   
@@ -1660,7 +1756,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/sdk/" class="md-nav__link">
+      <a href="../sdk/" class="md-nav__link">
         
   
   
@@ -1688,7 +1784,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/network-diff-capture/" class="md-nav__link">
+      <a href="../network-diff-capture/" class="md-nav__link">
         
   
   
@@ -1716,7 +1812,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/metrics/" class="md-nav__link">
+      <a href="../metrics/" class="md-nav__link">
         
   
   
@@ -1744,7 +1840,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/errors/" class="md-nav__link">
+      <a href="../errors/" class="md-nav__link">
         
   
   
@@ -1772,7 +1868,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/troubleshooting/" class="md-nav__link">
+      <a href="../troubleshooting/" class="md-nav__link">
         
   
   
@@ -1865,7 +1961,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/headroom/macos-deployment/" class="md-nav__link">
+      <a href="../macos-deployment/" class="md-nav__link">
         
   
   
@@ -1910,6 +2006,49 @@
   
   
   
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#configure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gemini-on-vertex" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gemini On Vertex
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#anthropic-publisher-on-vertex" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Anthropic Publisher On Vertex
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -1922,8 +2061,80 @@
               
               <article class="md-content__inner md-typeset">
                 
-  <h1>404 - Not found</h1>
+                  
 
+
+  
+  
+
+
+<h1 id="vertex-ai">Vertex AI<a class="headerlink" href="#vertex-ai" title="Permanent link">&para;</a></h1>
+<p>Headroom supports Google Cloud Vertex AI publisher endpoints through the proxy
+passthrough surface. Configure the proxy with a regional Vertex base URL, then
+send normal Vertex REST requests through Headroom.</p>
+<p>Google documents Gemini generation on Vertex with <code>generateContent</code> and
+<code>streamGenerateContent</code>, and the request body uses the Vertex/Gemini <code>contents</code>
+shape. See Google Cloud's model inference reference:
+https://docs.cloud.google.com/vertex-ai/generative-ai/docs/model-reference/inference</p>
+<p>Google Cloud REST calls authenticate with a bearer access token. For local
+development, Google documents both <code>gcloud auth print-access-token</code> and
+<code>gcloud auth application-default print-access-token</code>; Application Default
+Credentials search <code>GOOGLE_APPLICATION_CREDENTIALS</code>, local ADC files, and
+attached service accounts in that order. See:</p>
+<ul>
+<li>https://docs.cloud.google.com/docs/authentication/rest</li>
+<li>https://docs.cloud.google.com/docs/authentication/application-default-credentials</li>
+</ul>
+<h2 id="configure">Configure<a class="headerlink" href="#configure" title="Permanent link">&para;</a></h2>
+<p>Set the Vertex regional host explicitly:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>headroom<span class="w"> </span>proxy<span class="w"> </span>--vertex-api-url<span class="w"> </span>https://us-central1-aiplatform.googleapis.com
+</span></code></pre></div>
+<p>The same setting is available through <code>VERTEX_TARGET_API_URL</code>.</p>
+<h2 id="gemini-on-vertex">Gemini On Vertex<a class="headerlink" href="#gemini-on-vertex" title="Permanent link">&para;</a></h2>
+<p>Send Vertex publisher paths through the proxy unchanged:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nv">ACCESS_TOKEN</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>gcloud<span class="w"> </span>auth<span class="w"> </span>print-access-token<span class="k">)</span><span class="s2">&quot;</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>curl<span class="w"> </span>-sS<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="si">${</span><span class="nv">ACCESS_TOKEN</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span>http://127.0.0.1:8787/v1/projects/PROJECT_ID/locations/us-central1/publishers/google/models/gemini-2.0-flash:generateContent<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="s1">    &quot;contents&quot;: [</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="s1">      {</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="s1">        &quot;role&quot;: &quot;user&quot;,</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="s1">        &quot;parts&quot;: [{&quot;text&quot;: &quot;Summarize this repository in one paragraph.&quot;}]</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="s1">      }</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="s1">    ]</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="s1">  }&#39;</span>
+</span></code></pre></div>
+<p>Supported passthrough actions:</p>
+<ul>
+<li><code>generateContent</code></li>
+<li><code>streamGenerateContent</code></li>
+<li><code>countTokens</code></li>
+</ul>
+<h2 id="anthropic-publisher-on-vertex">Anthropic Publisher On Vertex<a class="headerlink" href="#anthropic-publisher-on-vertex" title="Permanent link">&para;</a></h2>
+<p>Headroom also forwards Anthropic publisher calls on Vertex:</p>
+<ul>
+<li><code>rawPredict</code></li>
+<li><code>streamRawPredict</code></li>
+</ul>
+<p>The Python proxy preserves caller-supplied Google bearer auth. The native Rust
+proxy path additionally resolves GCP ADC and injects the bearer token for the
+Anthropic publisher route.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
               </article>
             </div>
           
@@ -2003,10 +2214,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "/headroom/", "features": ["content.code.copy", "content.code.annotate", "content.tabs.link", "navigation.instant", "navigation.instant.progress", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.top", "navigation.indexes", "search.highlight", "search.suggest", "search.share", "toc.follow", "header.autohide"], "search": "/headroom/assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "content.code.annotate", "content.tabs.link", "navigation.instant", "navigation.instant.progress", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.top", "navigation.indexes", "search.highlight", "search.suggest", "search.share", "toc.follow", "header.autohide"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="/headroom/assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>
