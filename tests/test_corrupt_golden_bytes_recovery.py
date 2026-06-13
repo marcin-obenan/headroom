@@ -28,6 +28,7 @@ from headroom.proxy.helpers import (
     get_session_tool_tracker,
     serialize_tool_definition_canonical,
 )
+from tests.conftest import capture_logger_records
 
 # ---------------------------------------------------------------------------
 # Test isolation
@@ -124,7 +125,7 @@ class TestCorruptMemoryGoldenBytes:
         session_id = "sess-corrupt-mem-2"
         _seed_memory_tool("anthropic", session_id, "memory_search", b"\xff\xfe invalid")
 
-        with caplog.at_level(logging.ERROR, logger="headroom.proxy"):
+        with capture_logger_records(caplog, "headroom.proxy"):
             apply_session_sticky_memory_tools(
                 provider="anthropic",
                 session_id=session_id,
@@ -171,8 +172,7 @@ class TestCorruptMemoryGoldenBytes:
         # Bytes that are not valid UTF-8.
         _seed_memory_tool("anthropic", session_id, "memory_save", b"\x80\x81\x82\x83")
 
-        with caplog.at_level(logging.ERROR, logger="headroom.proxy"):
-            # Must not raise RuntimeError or UnicodeDecodeError.
+        with capture_logger_records(caplog, "headroom.proxy"):
             apply_session_sticky_memory_tools(
                 provider="anthropic",
                 session_id=session_id,
@@ -214,7 +214,7 @@ class TestCorruptCcrGoldenBytes:
         session_id = "sess-corrupt-ccr-2"
         _seed_ccr_done("anthropic", session_id, b"bad bytes {")
 
-        with caplog.at_level(logging.ERROR, logger="headroom.proxy"):
+        with capture_logger_records(caplog, "headroom.proxy"):
             apply_session_sticky_ccr_tool(
                 provider="anthropic",
                 session_id=session_id,

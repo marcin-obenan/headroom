@@ -700,7 +700,7 @@ def test_unwrap_codex_is_safe_noop_with_explicit_codex_home(
     _set_test_home(monkeypatch, tmp_path)
     monkeypatch.setenv("CODEX_HOME", str(tmp_path / "explicit-codex-home"))
 
-    result = runner.invoke(main, ["unwrap", "codex"])
+    result = runner.invoke(main, ["unwrap", "codex", "--no-stop-proxy"])
     assert result.exit_code == 0, result.output
     assert "Nothing to undo" in result.output
     assert "Warning:" not in result.output
@@ -719,7 +719,7 @@ def test_unwrap_codex_removes_headroom_only_config_file(
     config_file = tmp_path / ".codex" / "config.toml"
     assert config_file.exists()
 
-    unwrap_result = runner.invoke(main, ["unwrap", "codex"])
+    unwrap_result = runner.invoke(main, ["unwrap", "codex", "--no-stop-proxy"])
     assert unwrap_result.exit_code == 0, unwrap_result.output
     assert not config_file.exists()
 
@@ -737,7 +737,7 @@ def test_unwrap_codex_preserves_unrelated_sections(
     with patch("headroom.cli.wrap._ensure_rtk_binary", return_value=None):
         runner.invoke(main, ["wrap", "codex", "--prepare-only", "--port", "8787"])
 
-    result = runner.invoke(main, ["unwrap", "codex"])
+    result = runner.invoke(main, ["unwrap", "codex", "--no-stop-proxy"])
     assert result.exit_code == 0, result.output
     restored = config_file.read_text()
     assert restored == original

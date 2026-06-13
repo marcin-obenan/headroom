@@ -74,6 +74,7 @@ from headroom.providers.copilot import (
 from headroom.providers.copilot import (
     validate_configuration as _validate_copilot_configuration,
 )
+from headroom.providers.cursor import build_launch_env as _build_cursor_launch_env
 from headroom.providers.cursor import render_setup_lines as _render_cursor_setup_lines
 from headroom.providers.openclaw import (
     build_plugin_entry as _build_openclaw_plugin_entry_impl,
@@ -360,6 +361,7 @@ def _start_proxy(
     # Ensure proxy subprocess uses UTF-8 (Windows defaults to cp1252)
     proxy_env = os.environ.copy()
     proxy_env["PYTHONIOENCODING"] = "utf-8"
+    proxy_env.setdefault("HEADROOM_TELEMETRY", "off")
 
     # Tell the proxy which agent is being wrapped (for traffic learning output)
     if agent_type != "unknown":
@@ -2215,6 +2217,7 @@ def _launch_tool(
     region: str | None = None,
     openai_api_url: str | None = None,
     copilot_api_token: str | None = None,
+    stdin_input: bytes | None = None,
 ) -> None:
     """Common logic: start proxy, launch tool, clean up."""
     proxy_holder: list[subprocess.Popen | None] = [None]
@@ -2257,7 +2260,10 @@ def _launch_tool(
         _print_telemetry_notice()
         click.echo()
 
-        result = subprocess.run([binary, *args], env=env)
+        run_kwargs: dict[str, Any] = {"env": env}
+        if stdin_input is not None:
+            run_kwargs["input"] = stdin_input
+        result = subprocess.run([binary, *args], **run_kwargs)
         raise SystemExit(result.returncode)
 
     except SystemExit:
@@ -2573,6 +2579,9 @@ def claude(
         headroom wrap claude --no-mcp           # Skip MCP retrieve tool registration
         headroom wrap claude --no-serena        # Skip Serena MCP registration
     """
+    # Context Guard preflight (ai-rules#79): argv + piped stdin before launch.
+    stdin_replay = _guard_and_capture_stdin("claude", claude_args)
+
     if prepare_only:
         if not no_rtk:
             if _selected_context_tool() == _CONTEXT_TOOL_LEAN_CTX:
@@ -2728,8 +2737,9 @@ def claude(
                 "(using your existing environment value)"
             )
 
-        result = subprocess.run([claude_bin, *claude_args], env=env)
-        raise SystemExit(result.returncode)
+        raise SystemExit(
+            _run_child_process([claude_bin, *claude_args], env=env, stdin_replay=stdin_replay)
+        )
 
     except SystemExit:
         raise
@@ -2890,6 +2900,8 @@ def copilot(
     explicitly with GITHUB_COPILOT_API_URL (the override flows through to upstream).
     See TESTING-copilot-subscription.md for details.
     """
+    stdin_replay = _guard_and_capture_stdin("copilot", copilot_args)
+
     copilot_bin = shutil.which("copilot")
     if not copilot_bin:
         click.echo("Error: 'copilot' not found in PATH.")
@@ -3049,6 +3061,7 @@ def copilot(
         region=region,
         openai_api_url=openai_api_url,
         copilot_api_token=copilot_proxy_token,
+        stdin_input=stdin_replay,
     )
 
 
@@ -3133,6 +3146,8 @@ def codex(
         headroom wrap codex --port 9999             # Custom proxy port
         headroom wrap codex --backend anyllm --anyllm-provider groq
     """
+    stdin_replay = _guard_and_capture_stdin("codex", codex_args)
+
     # Snapshot Codex config.toml BEFORE any wrap-time mutation so
     # `headroom unwrap codex` can restore the user's pre-wrap state
     # byte-for-byte. The snapshot is a no-op if the backup already exists
@@ -3261,6 +3276,7 @@ def codex(
         no_proxy=no_proxy,
         tool_label="CODEX",
         env_vars_display=env_vars_display,
+        stdin_input=stdin_replay,
         learn=learn,
         memory=memory,
         agent_type="codex",
@@ -3329,6 +3345,8 @@ def aider(
         headroom wrap aider --no-context-tool            # Skip CLI context-tool setup
         headroom wrap aider --backend litellm-vertex --region us-central1
     """
+    stdin_replay = _guard_and_capture_stdin("aider", aider_args)
+
     # Setup CLI context tool for aider.
     if not no_rtk:
         if _selected_context_tool() == _CONTEXT_TOOL_LEAN_CTX:
@@ -3370,6 +3388,7 @@ def aider(
         backend=backend,
         anyllm_provider=anyllm_provider,
         region=region,
+        stdin_input=stdin_replay,
     )
 
 
@@ -3454,6 +3473,306 @@ def cursor(
         memory=memory,
         agent_type="cursor",
         print_setup_lines=_print_cursor_setup,
+    )
+
+
+# =============================================================================
+# Context Guard wrapper preflight (ai-rules#79)
+# =============================================================================
+
+# Max piped stdin bytes read for wrap preflight + child replay (env override).
+_WRAP_STDIN_DEFAULT_MAX_BYTES = 32 * 1024 * 1024
+_WRAP_STDIN_ABSOLUTE_MAX_BYTES = 512 * 1024 * 1024
+
+
+def _wrap_stdin_max_bytes() -> int:
+    raw = os.environ.get("HEADROOM_WRAP_STDIN_MAX_BYTES", "").strip()
+    if not raw:
+        return _WRAP_STDIN_DEFAULT_MAX_BYTES
+    try:
+        parsed = int(raw)
+    except ValueError:
+        click.echo(
+            f"[context-guard] WARN: invalid HEADROOM_WRAP_STDIN_MAX_BYTES={raw!r}; "
+            f"using default {_WRAP_STDIN_DEFAULT_MAX_BYTES:,}.",
+            err=True,
+        )
+        return _WRAP_STDIN_DEFAULT_MAX_BYTES
+    if parsed > _WRAP_STDIN_ABSOLUTE_MAX_BYTES:
+        click.echo(
+            f"[context-guard] WARN: HEADROOM_WRAP_STDIN_MAX_BYTES={parsed:,} exceeds "
+            f"ceiling {_WRAP_STDIN_ABSOLUTE_MAX_BYTES:,}; clamping.",
+            err=True,
+        )
+    return min(max(0, parsed), _WRAP_STDIN_ABSOLUTE_MAX_BYTES)
+
+
+def _run_child_process(
+    cmd: list[str],
+    *,
+    env: dict[str, str],
+    stdin_replay: bytes | None = None,
+) -> int:
+    """Launch a wrapped CLI binary, replaying captured piped stdin when set."""
+    run_kwargs: dict[str, Any] = {"env": env}
+    if stdin_replay is not None:
+        run_kwargs["input"] = stdin_replay
+    return subprocess.run(cmd, **run_kwargs).returncode
+
+
+def _capture_wrap_stdin() -> tuple[bytes | None, str | None, bool]:
+    """Read piped stdin once for preflight sizing and child replay.
+
+    Returns ``(replay_bytes, preflight_text, exceeded_cap)``.
+
+    * TTY stdin → ``(None, None, False)`` — child inherits the terminal.
+    * Empty pipe → ``(None, None, False)`` — child inherits stdin (no replay).
+    * Piped stdin within cap → ``(data, decoded, False)`` — replay via
+      ``subprocess.run(..., input=data)``.
+    * Piped stdin over cap → ``(None, prefix_decoded, True)`` — launch aborted.
+    """
+    if sys.stdin.isatty():
+        return None, None, False
+
+    cap = _wrap_stdin_max_bytes()
+    data = sys.stdin.buffer.read(cap + 1)
+    if len(data) > cap:
+        prefix = data[:cap]
+        return None, prefix.decode("utf-8", errors="replace"), True
+    if not data:
+        return None, None, False
+
+    return data, data.decode("utf-8", errors="replace"), False
+
+
+def _guard_and_capture_stdin(
+    client: str,
+    args: tuple,
+    *,
+    mode_override: str | None = None,
+    override_reason: str | None = None,
+) -> bytes | None:
+    """Capture piped stdin, run context-guard preflight, return bytes for child replay."""
+    replay, stdin_text, exceeded = _capture_wrap_stdin()
+    if exceeded:
+        from headroom.proxy.context_guard.estimator import estimate_tokens
+        from headroom.proxy.context_guard.rejection_metrics import (
+            build_stdin_byte_cap_metrics,
+            format_rejection_stderr,
+            log_rejection,
+        )
+
+        cap = _wrap_stdin_max_bytes()
+        metrics = build_stdin_byte_cap_metrics(
+            client=client,
+            byte_cap=cap,
+            bytes_observed=cap + 1,
+            stdin_prefix_tokens=estimate_tokens(stdin_text or ""),
+        )
+        log_rejection(metrics)
+        for line in format_rejection_stderr(metrics):
+            click.echo(line, err=True)
+        raise SystemExit(2)
+    _context_guard_preflight(
+        client,
+        args,
+        stdin_text=stdin_text,
+        mode_override=mode_override,
+        override_reason=override_reason,
+    )
+    return replay
+
+
+def _context_guard_preflight(
+    client: str,
+    args: tuple,
+    *,
+    stdin_text: str | None = None,
+    mode_override: str | None = None,
+    override_reason: str | None = None,
+) -> None:
+    """Run the local context-guard preflight before launching a wrapped CLI.
+
+    For the Cursor Agent CLI this is the ONLY enforcement point (its traffic is
+    cert-pinned). It inspects argv + piped stdin + the repo and, on a hard block,
+    prints the agent-readable message to stderr and aborts the launch
+    (SystemExit 2). It NEVER raises on its own error — fail open so a guard bug
+    can't stop the developer.
+    """
+    try:
+        from headroom.proxy.context_guard.config import load_raw_config
+        from headroom.proxy.context_guard.models import OverrideContext
+        from headroom.proxy.context_guard.preflight import preflight_request
+
+        raw = load_raw_config()
+        if mode_override:
+            raw = dict(raw or {})
+            raw["mode"] = mode_override
+            raw["enabled"] = mode_override != "off"
+        if not raw:
+            return
+
+        override = OverrideContext(
+            requested=bool(override_reason),
+            reason=override_reason,
+            ci_disabled=bool(os.environ.get("CI")),
+        )
+        outcome = preflight_request(
+            raw_config=raw,
+            client=client,
+            argv=list(args),
+            stdin_text=stdin_text,
+            cwd=os.getcwd(),
+            run_id=f"preflight-{client}",
+            override=override,
+        )
+    except Exception:  # pragma: no cover - defensive: never block on our own bug
+        return
+
+    for warning in outcome.warnings:
+        click.echo(f"[context-guard] {warning}", err=True)
+    if outcome.blocked:
+        if outcome.metrics:
+            from headroom.proxy.context_guard.rejection_metrics import format_rejection_stderr
+
+            for line in format_rejection_stderr(outcome.metrics):
+                click.echo(line, err=True)
+        click.echo(
+            outcome.human_message or "Request blocked by Headroom Context Guard.",
+            err=True,
+        )
+        raise SystemExit(2)
+
+
+# =============================================================================
+# Cursor Agent CLI (headless `cursor-agent` / `agent`)
+# =============================================================================
+
+
+@wrap.command(context_settings={"ignore_unknown_options": True})
+@click.option("--port", "-p", default=8787, type=int, help="Proxy port (default: 8787)")
+@click.option(
+    "--context-guard-mode",
+    type=click.Choice(["off", "warn", "block"]),
+    default=None,
+    help="Override context-guard mode for this run (ai-rules#79)",
+)
+@click.option(
+    "--context-guard-override",
+    "context_guard_override",
+    default=None,
+    metavar="REASON",
+    help="Override an overridable context-guard block, with an audit reason",
+)
+@click.option(
+    "--no-context-tool",
+    "--no-rtk",
+    "no_rtk",
+    is_flag=True,
+    help="Skip CLI context-tool setup",
+)
+@click.option(
+    "--code-graph",
+    is_flag=True,
+    help="Enable code graph indexing via codebase-memory-mcp (optional)",
+)
+@click.option("--no-proxy", is_flag=True, help="Skip proxy startup (use existing proxy)")
+@click.option("--learn", is_flag=True, help="Enable live traffic learning")
+@click.option("--memory", is_flag=True, help="Enable persistent cross-session memory")
+@click.option(
+    "--backend", default=None, help="API backend: 'anthropic', 'anyllm', 'litellm-vertex', etc."
+)
+@click.option("--anyllm-provider", default=None, help="Provider for any-llm backend")
+@click.option("--region", default=None, help="Cloud region for Bedrock/Vertex")
+@click.option("--verbose", "-v", is_flag=True, help="Verbose output")
+@click.option("--prepare-only", is_flag=True, hidden=True)
+@click.argument("agent_args", nargs=-1, type=click.UNPROCESSED)
+def agent(
+    port: int,
+    context_guard_mode: str | None,
+    context_guard_override: str | None,
+    no_rtk: bool,
+    code_graph: bool,
+    no_proxy: bool,
+    learn: bool,
+    memory: bool,
+    backend: str | None,
+    anyllm_provider: str | None,
+    region: str | None,
+    verbose: bool,
+    prepare_only: bool,
+    agent_args: tuple,
+) -> None:
+    """Launch the headless Cursor Agent CLI through Headroom proxy.
+
+    \b
+    Sets OPENAI_BASE_URL and ANTHROPIC_BASE_URL so the ``cursor-agent`` CLI
+    routes every OpenAI/Anthropic call through Headroom (token-optimized,
+    savings attributed per project). This is the Pattern-A launcher for the
+    headless agent CLI — the same shape as ``wrap claude`` / ``wrap codex`` —
+    distinct from ``wrap cursor`` which only prints IDE config instructions.
+
+    \b
+    The binary is resolved as ``cursor-agent`` first, then ``agent``.
+
+    \b
+    Examples:
+        headroom wrap agent                          # Start proxy + context tool + agent
+        headroom wrap agent -- "fix the bug"         # Pass a prompt to cursor-agent
+        headroom wrap agent -- -m composer-2.5-fast "..."   # Pick the model
+        headroom wrap agent --no-context-tool        # Skip CLI context-tool setup
+        headroom wrap agent --port 9999              # Custom proxy port
+    """
+    stdin_replay = _guard_and_capture_stdin(
+        "cursor-agent",
+        agent_args,
+        mode_override=context_guard_mode,
+        override_reason=context_guard_override,
+    )
+
+    # Setup CLI context tool for the Cursor Agent CLI. cursor-agent reads
+    # project rules from .cursorrules, so inject there (same target as the
+    # `wrap cursor` IDE path).
+    if not no_rtk:
+        if _selected_context_tool() == _CONTEXT_TOOL_LEAN_CTX:
+            click.echo("  Setting up lean-ctx for Cursor Agent...")
+            _setup_lean_ctx_agent("cursor", verbose=verbose)
+        else:
+            click.echo("  Setting up rtk for Cursor Agent...")
+            rtk_path = _ensure_rtk_binary(verbose=verbose)
+            if rtk_path:
+                cursorrules = Path.cwd() / ".cursorrules"
+                _inject_rtk_instructions(cursorrules, verbose=verbose)
+
+    if prepare_only:
+        return
+
+    agent_bin = shutil.which("cursor-agent") or shutil.which("agent")
+    if not agent_bin:
+        click.echo("Error: neither 'cursor-agent' nor 'agent' found in PATH.")
+        click.echo("Install the Cursor Agent CLI: https://cursor.com/cli")
+        raise SystemExit(1)
+
+    env, env_vars_display = _build_cursor_launch_env(
+        port, os.environ, project=_project_name_from_cwd()
+    )
+
+    _launch_tool(
+        binary=agent_bin,
+        args=agent_args,
+        env=env,
+        port=port,
+        no_proxy=no_proxy,
+        tool_label="CURSOR AGENT",
+        env_vars_display=env_vars_display,
+        stdin_input=stdin_replay,
+        learn=learn,
+        memory=memory,
+        agent_type="cursor",
+        code_graph=code_graph,
+        backend=backend,
+        anyllm_provider=anyllm_provider,
+        region=region,
     )
 
 
@@ -3747,6 +4066,8 @@ def goose(
         headroom wrap goose -- --provider anthropic  # Pass args to goose
         headroom wrap goose --no-context-tool        # Skip CLI context-tool setup
     """
+    stdin_replay = _guard_and_capture_stdin("goose", goose_args)
+
     # Goose reads .goosehints from the project root as extra context.
     # Pre-compute the marker path so the KeyboardInterrupt handler can report
     # its location even if the interrupt fires before _inject_rtk_instructions
@@ -3799,6 +4120,7 @@ def goose(
         backend=backend,
         anyllm_provider=anyllm_provider,
         region=region,
+        stdin_input=stdin_replay,
     )
 
 
@@ -3869,6 +4191,8 @@ def openhands(
         headroom wrap openhands -- --task ...  # Pass args to openhands
         headroom wrap openhands --no-context-tool
     """
+    stdin_replay = _guard_and_capture_stdin("openhands", openhands_args)
+
     # openhands never writes to disk — its rtk guidance ships via the
     # OPENHANDS_INSTRUCTIONS env var below — so marker_path is None and
     # rtk_required gates the env-only path: without an rtk binary there
@@ -3940,6 +4264,7 @@ def openhands(
         backend=backend,
         anyllm_provider=anyllm_provider,
         region=region,
+        stdin_input=stdin_replay,
     )
 
 

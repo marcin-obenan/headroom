@@ -1591,6 +1591,36 @@ class OpenAIHandlerMixin:
         tokenizer = get_tokenizer(model)
         original_tokens = tokenizer.count_messages(messages)
 
+        # Context Guard (ai-rules#79): estimate raw input + apply policy BEFORE
+        # compression. Block path never calls upstream. Never raises.
+        _cg_raw = getattr(self.config, "context_guard", None)
+        if _cg_raw:
+            from headroom.proxy.context_guard.integration import (
+                guard_request,
+                override_from_headers,
+            )
+
+            _cg = guard_request(
+                raw_config=_cg_raw,
+                body=body,
+                provider="openai",
+                client=client or "codex",
+                run_id=str(request_id),
+                override=override_from_headers(request.headers),
+            )
+            if _cg.blocked:
+                from fastapi.responses import JSONResponse as _CGJSONResp
+
+                if _cg.metrics:
+                    logger.warning(
+                        "Context guard BLOCK metrics: %s",
+                        _cg.metrics,
+                    )
+                logger.warning(f"[{request_id}] Context guard BLOCK: {_cg.reason_codes}")
+                return _CGJSONResp(status_code=413, content=_cg.machine_error)
+            if _cg.warnings:
+                logger.info(f"[{request_id}] Context guard: {_cg.warnings}")
+
         # Hook: pre_compress
         _hook_biases = None
         if self.config.hooks:
@@ -3519,17 +3549,26 @@ class OpenAIHandlerMixin:
             client_subprotocols,
         )
 
-        # Ensure Authorization header is present — fall back to OPENAI_API_KEY env var.
-        # Safety net for clients that don't forward auth headers via WebSocket upgrade.
+        # Ensure Authorization header is present — fall back to OPENAI_API_KEY
+        # only for trusted local callers. Without this guard, a LAN client could
+        # drive env-backed credentials if the proxy was accidentally bound to
+        # a non-loopback interface.
         if "authorization" not in _lower_headers:
-            api_key = os.environ.get("OPENAI_API_KEY")
+            from headroom.proxy.local_security import connection_client_is_loopback
+
+            api_key = (
+                os.environ.get("OPENAI_API_KEY")
+                if connection_client_is_loopback(websocket)
+                or not getattr(self.config, "local_control_guard_enabled", True)
+                else None
+            )
             if api_key:
                 upstream_headers["Authorization"] = f"Bearer {api_key}"
                 logger.debug(f"[{request_id}] WS: injected Authorization from OPENAI_API_KEY env")
             else:
                 logger.warning(
                     f"[{request_id}] WS: no Authorization header from client and "
-                    f"OPENAI_API_KEY not set — upstream will likely reject"
+                    f"no trusted local OPENAI_API_KEY fallback — upstream will likely reject"
                 )
 
         upstream_headers = await apply_copilot_api_auth(upstream_headers, url=upstream_url)
@@ -5909,7 +5948,12 @@ class OpenAIHandlerMixin:
             request_id=None,
         )
 
-        body = await request.body()
+        from headroom.proxy.helpers import _read_limited_request_body
+
+        try:
+            body = await _read_limited_request_body(request)
+        except ValueError as exc:
+            return Response(content=str(exc), status_code=413)
 
         headers = await apply_copilot_api_auth(headers, url=url)
         try:

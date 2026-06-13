@@ -130,21 +130,23 @@ def test_openai_passthrough_applies_copilot_auth(monkeypatch: pytest.MonkeyPatch
             seen["request_kwargs"] = kwargs
             return SimpleNamespace(headers={}, content=b"{}", status_code=200)
 
-    request = SimpleNamespace(
-        url=SimpleNamespace(path="/v1/models", query=""),
-        headers={
+    class _PassthroughRequest:
+        url = SimpleNamespace(path="/v1/models", query="")
+        headers = {
             "authorization": "Bearer downstream",
             "host": "localhost",
             "accept-encoding": "gzip",
-        },
-        method="GET",
-        body=lambda: None,
-    )
+        }
+        method = "GET"
+        _body = b""
 
-    async def body() -> bytes:
-        return b""
+        async def body(self) -> bytes:
+            return self._body
 
-    request.body = body
+        async def stream(self):
+            yield self._body
+
+    request = _PassthroughRequest()
 
     handler = Dummy()
     response = asyncio.run(

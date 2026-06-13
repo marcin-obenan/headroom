@@ -264,7 +264,7 @@ def hash_query_for_log(query: str) -> str:
 # such request collapses Anthropic prefix-cache hit-rate.
 #
 # PR-A3 switches every forwarder to byte-faithful forwarding:
-#   * unmutated body → forward original ``await request.body()`` verbatim;
+#   * unmutated body → forward original limited request bytes verbatim;
 #   * mutated body  → re-serialize once via ``serialize_body_canonical``.
 #
 # A ``BodyMutationTracker`` accompanies each request so the forwarder can
@@ -2658,15 +2658,88 @@ def apply_session_sticky_ccr_tool(
     return tools_out, True
 
 
-async def _read_request_body_bytes(request: Request) -> bytes:
+def _ensure_request_body_size(raw: bytes, *, max_bytes: int, stage: str) -> bytes:
+    if len(raw) > max_bytes:
+        raise ValueError(
+            f"Request body too large after {stage}. Maximum decompressed size is "
+            f"{max_bytes // (1024 * 1024)}MB"
+        )
+    return raw
+
+
+async def _read_limited_request_body(
+    request: Request,
+    *,
+    max_bytes: int = MAX_REQUEST_BODY_SIZE,
+) -> bytes:
+    """Read request bytes without buffering past the configured size limit.
+
+    Idempotent like Starlette's ``Request.body()``: the result is cached on the
+    request, so a second read (another handler stage, a retry) returns the cached
+    bytes instead of raising ``RuntimeError: Stream consumed``. ``request.stream()``
+    on its own is single-use, which would break any path that reads the body twice.
+    """
+    cached = getattr(request, "_body", None)
+    if isinstance(cached, (bytes, bytearray)):
+        return _ensure_request_body_size(bytes(cached), max_bytes=max_bytes, stage="read")
+
+    content_length = request.headers.get("content-length")
+    if content_length:
+        try:
+            declared_length = int(content_length)
+        except ValueError:
+            declared_length = 0
+        if declared_length > max_bytes:
+            raise ValueError(
+                f"Request body too large after read. Maximum decompressed size is "
+                f"{max_bytes // (1024 * 1024)}MB"
+            )
+
+    chunks: list[bytes] = []
+    total_bytes = 0
+    async for chunk in request.stream():
+        if not chunk:
+            continue
+        total_bytes += len(chunk)
+        if total_bytes > max_bytes:
+            raise ValueError(
+                f"Request body too large after read. Maximum decompressed size is "
+                f"{max_bytes // (1024 * 1024)}MB"
+            )
+        chunks.append(chunk)
+    raw = b"".join(chunks)
+    # Cache for idempotent re-reads (bounded by max_bytes), mirroring Request.body().
+    try:
+        request._body = raw  # type: ignore[attr-defined]
+    except Exception:  # pragma: no cover - exotic request stubs
+        pass
+    return raw
+
+
+def _decompress_zlib_limited(raw: bytes, *, max_bytes: int, wbits: int, stage: str) -> bytes:
+    import zlib
+
+    decompressor = zlib.decompressobj(wbits)
+    output_limit = max_bytes + 1
+    out = decompressor.decompress(raw, output_limit)
+    if len(out) <= max_bytes:
+        out += decompressor.flush(output_limit - len(out))
+    return _ensure_request_body_size(out, max_bytes=max_bytes, stage=stage)
+
+
+async def _read_request_body_bytes(
+    request: Request,
+    *,
+    max_bytes: int = MAX_REQUEST_BODY_SIZE,
+) -> bytes:
     """Read and (if needed) decompress the request body, returning raw UTF-8 bytes.
 
     Mirrors ``_read_request_json`` but returns the bytes pre-parse so
     forwarders can implement byte-faithful passthrough (PR-A3, fixes P0-2).
-    Raises ``ValueError`` on any decompression failure.
+    Raises ``ValueError`` on any decompression or size-limit failure.
     """
     encoding = (request.headers.get("content-encoding") or "").lower().strip()
-    raw = await request.body()
+    raw = await _read_limited_request_body(request, max_bytes=max_bytes)
 
     if encoding in ("zstd", "zstandard"):
         try:
@@ -2674,8 +2747,9 @@ async def _read_request_body_bytes(request: Request) -> bytes:
 
             dctx = zstandard.ZstdDecompressor()
             reader = dctx.stream_reader(raw)
-            raw = reader.read()
+            raw = reader.read(max_bytes + 1)
             reader.close()
+            _ensure_request_body_size(raw, max_bytes=max_bytes, stage="decompression")
         except ImportError:
             raise ValueError(
                 "Request body is zstd-compressed but the 'zstandard' package is not installed. "
@@ -2684,30 +2758,34 @@ async def _read_request_body_bytes(request: Request) -> bytes:
         except Exception as exc:
             raise ValueError(f"Failed to decompress zstd request body: {exc}") from exc
     elif encoding == "gzip":
-        import gzip as _gzip
+        import zlib
 
         try:
-            raw = _gzip.decompress(raw)
+            raw = _decompress_zlib_limited(
+                raw,
+                max_bytes=max_bytes,
+                wbits=16 + zlib.MAX_WBITS,
+                stage="decompression",
+            )
         except Exception as exc:
             raise ValueError(f"Failed to decompress gzip request body: {exc}") from exc
     elif encoding == "deflate":
         import zlib
 
         try:
-            raw = zlib.decompress(raw)
+            raw = _decompress_zlib_limited(
+                raw,
+                max_bytes=max_bytes,
+                wbits=zlib.MAX_WBITS,
+                stage="decompression",
+            )
         except Exception as exc:
             raise ValueError(f"Failed to decompress deflate request body: {exc}") from exc
     elif encoding == "br":
-        try:
-            import brotli
-
-            raw = brotli.decompress(raw)
-        except ImportError:
-            raise ValueError(
-                "Request body is brotli-compressed but the 'brotli' package is not installed."
-            ) from None
-        except Exception as exc:
-            raise ValueError(f"Failed to decompress brotli request body: {exc}") from exc
+        raise ValueError(
+            "Unsupported Content-Encoding: br for request bodies. "
+            "Use identity, gzip, deflate, or zstd."
+        )
     elif encoding and encoding != "identity":
         raise ValueError(f"Unsupported Content-Encoding: {encoding}")
 
@@ -2742,7 +2820,7 @@ async def _read_request_json(request: Request) -> dict[str, Any]:
 async def read_request_json_with_bytes(request: Request) -> tuple[dict[str, Any], bytes]:
     """Read JSON body AND return the original (decompressed) bytes.
 
-    Returned bytes are post-content-decoding (zstd/gzip/deflate/br are
+    Returned bytes are post-content-decoding (zstd/gzip/deflate are
     decompressed) so they represent the body as the upstream API will
     receive it. Forwarders pair this with a ``BodyMutationTracker`` to
     decide between passthrough and canonical re-serialization.

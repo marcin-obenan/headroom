@@ -62,7 +62,7 @@
 ## Configuration for Maximum Privacy
 
 ```bash
-HEADROOM_TELEMETRY=off
+HEADROOM_TELEMETRY=off  # default; keep explicit in privacy profiles
 HEADROOM_STATELESS=true
 headroom proxy --no-cache --no-optimize
 ```

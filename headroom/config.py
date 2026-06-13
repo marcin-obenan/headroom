@@ -33,7 +33,7 @@ class CacheAlignerConfig:
     New Detection Capabilities (when use_dynamic_detector=True):
     - UUIDs: 550e8400-e29b-41d4-a716-446655440000
     - API keys/tokens: sk-abc123..., api_key_xyz...
-    - JWT tokens: eyJhbGciOiJIUzI1NiIs...
+    - JWT tokens: <jwt-redacted>
     - Unix timestamps: 1705312847
     - Request/trace IDs: req_abc123, trace_xyz789
     - Hex hashes: MD5 (32 chars), SHA1 (40 chars), SHA256 (64 chars)

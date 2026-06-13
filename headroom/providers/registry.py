@@ -7,6 +7,7 @@ import os
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, cast
+from urllib.parse import urlparse
 
 from headroom.providers.claude import DEFAULT_API_URL as DEFAULT_ANTHROPIC_API_URL
 from headroom.providers.codex import DEFAULT_API_URL as DEFAULT_OPENAI_API_URL
@@ -51,6 +52,8 @@ class ProxyProviderRuntime:
 
     api_targets: ProviderApiTargets
     pipeline_providers: dict[str, Provider]
+    custom_upstream_header_enabled: bool = False
+    custom_upstream_allowed_hosts: tuple[str, ...] = ()
 
     def api_target(self, provider_name: str) -> str:
         """Return the resolved upstream target for a provider."""
@@ -79,7 +82,11 @@ class ProxyProviderRuntime:
         if headers.get("api-key"):
             azure_base = headers.get("x-headroom-base-url", "")
             if azure_base:
-                return azure_base.rstrip("/")
+                return _validated_custom_upstream_base_url(
+                    azure_base,
+                    enabled=self.custom_upstream_header_enabled,
+                    allowed_hosts=self.custom_upstream_allowed_hosts,
+                )
         return self.api_targets.openai
 
 
@@ -91,6 +98,28 @@ def _normalize_api_url(url: str | None, *, default: str) -> str:
     if normalized.endswith("/v1"):
         normalized = normalized[:-3]
     return normalized
+
+
+def _validated_custom_upstream_base_url(
+    raw_base_url: str,
+    *,
+    enabled: bool,
+    allowed_hosts: tuple[str, ...],
+) -> str:
+    if not enabled:
+        raise ValueError("x-headroom-base-url is disabled by default")
+
+    parsed = urlparse(raw_base_url.strip())
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc or not parsed.hostname:
+        raise ValueError("Invalid x-headroom-base-url")
+
+    allowed = {host.strip().lower().rstrip("/") for host in allowed_hosts if host.strip()}
+    host = parsed.hostname.lower()
+    netloc = parsed.netloc.lower()
+    if not allowed or (host not in allowed and netloc not in allowed):
+        raise ValueError("x-headroom-base-url host is not allowed")
+
+    return raw_base_url.rstrip("/")
 
 
 def resolve_api_overrides(
@@ -140,6 +169,10 @@ def build_proxy_provider_runtime(config: Any) -> ProxyProviderRuntime:
             "anthropic": AnthropicProvider(warn=False),
             "openai": OpenAIProvider(),
         },
+        custom_upstream_header_enabled=bool(
+            getattr(config, "custom_upstream_header_enabled", False)
+        ),
+        custom_upstream_allowed_hosts=tuple(getattr(config, "custom_upstream_allowed_hosts", ())),
     )
 
 

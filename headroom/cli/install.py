@@ -157,7 +157,12 @@ def _reject_task_lifecycle(manifest: DeploymentManifest, action: str) -> None:
     "--mode", "proxy_mode", default="token", show_default=True, help="Proxy optimization mode."
 )
 @click.option("--memory", is_flag=True, help="Enable persistent memory in the proxy runtime.")
-@click.option("--no-telemetry", is_flag=True, help="Disable anonymous telemetry in the runtime.")
+@click.option(
+    "--telemetry/--no-telemetry",
+    default=False,
+    show_default=True,
+    help="Enable anonymous aggregate telemetry in the runtime.",
+)
 @click.option(
     "--image",
     default="ghcr.io/chopratejas/headroom:latest",
@@ -177,7 +182,7 @@ def install_apply(
     region: str | None,
     proxy_mode: str,
     memory: bool,
-    no_telemetry: bool,
+    telemetry: bool,
     image: str,
 ) -> None:
     """Install a persistent Headroom deployment."""
@@ -198,7 +203,7 @@ def install_apply(
         region=region,
         proxy_mode=proxy_mode,
         memory_enabled=memory,
-        telemetry_enabled=not no_telemetry,
+        telemetry_enabled=telemetry,
         image=image,
     )
 

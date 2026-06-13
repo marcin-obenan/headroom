@@ -872,6 +872,37 @@ class AnthropicHandlerMixin:
                         )
                     logger.warning(f"[{request_id}] Security scan error: {e}")
 
+            # Context Guard (ai-rules#79): estimate raw input + apply policy
+            # BEFORE compression. Block path never calls upstream. Never raises.
+            _cg_raw = getattr(self.config, "context_guard", None)
+            if _cg_raw:
+                from headroom.proxy.context_guard.integration import (
+                    guard_request,
+                    override_from_headers,
+                )
+
+                _cg = guard_request(
+                    raw_config=_cg_raw,
+                    body=body,
+                    provider="anthropic",
+                    client=client or "claude",
+                    run_id=str(request_id),
+                    override=override_from_headers(request.headers),
+                )
+                if _cg.blocked:
+                    from fastapi.responses import JSONResponse as _CGJSONResp
+
+                    if _cg.metrics:
+                        logger.warning(
+                            "Context guard BLOCK metrics: %s",
+                            _cg.metrics,
+                        )
+                    logger.warning(f"[{request_id}] Context guard BLOCK: {_cg.reason_codes}")
+                    await _finalize_pre_upstream()
+                    return _CGJSONResp(status_code=413, content=_cg.machine_error)
+                if _cg.warnings:
+                    logger.info(f"[{request_id}] Context guard: {_cg.warnings}")
+
             # Hook: pre_compress — let hooks modify messages before compression
 
             if self.config.hooks and not is_cache_mode(self.config.mode):
@@ -2805,7 +2836,11 @@ class AnthropicHandlerMixin:
         client = classify_client(headers)
         tags = extract_tags(headers)
         # PR-A5 (P5-49): strip internal x-headroom-* before forwarding upstream.
-        from headroom.proxy.helpers import _strip_internal_headers, log_outbound_headers
+        from headroom.proxy.helpers import (
+            _read_limited_request_body,
+            _strip_internal_headers,
+            log_outbound_headers,
+        )
 
         _pre_strip_count = sum(1 for k in headers if k.lower().startswith("x-headroom-"))
         headers = _strip_internal_headers(headers)
@@ -2815,7 +2850,10 @@ class AnthropicHandlerMixin:
             request_id=None,
         )
 
-        body = await request.body()
+        try:
+            body = await _read_limited_request_body(request)
+        except ValueError as exc:
+            return Response(content=str(exc), status_code=413)
 
         response = await self.http_client.request(  # type: ignore[union-attr]
             method=request.method,

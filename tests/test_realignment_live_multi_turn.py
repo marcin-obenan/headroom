@@ -66,7 +66,7 @@ LIVE_CONFIG: dict[str, Any] = {
     # OpenAI — small + cheap.
     "openai_model": os.environ.get("HEADROOM_LIVE_OPENAI_MODEL", "gpt-4o-mini"),
     # Gemini — flash variants.
-    "gemini_model": os.environ.get("HEADROOM_LIVE_GEMINI_MODEL", "gemini-2.0-flash"),
+    "gemini_model": os.environ.get("HEADROOM_LIVE_GEMINI_MODEL", "gemini-2.5-flash"),
     # Token budgets — keep small so each test stays under 30s.
     "max_tokens_short": 32,
     "max_tokens_med": 128,

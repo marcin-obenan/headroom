@@ -12,10 +12,11 @@ import os
 
 import pytest
 
-# Skip entire module if no API key
-pytestmark = pytest.mark.skipif(
-    not os.environ.get("GEMINI_API_KEY"), reason="GEMINI_API_KEY not set"
-)
+# Skip entire module if no API key; opt-in via -m real_llm (excluded from default suite).
+pytestmark = [
+    pytest.mark.real_llm,
+    pytest.mark.skipif(not os.environ.get("GEMINI_API_KEY"), reason="GEMINI_API_KEY not set"),
+]
 
 pytest.importorskip("fastapi")
 pytest.importorskip("httpx")
@@ -23,6 +24,7 @@ pytest.importorskip("httpx")
 from fastapi.testclient import TestClient  # noqa: E402
 
 from headroom.proxy.server import ProxyConfig, create_app  # noqa: E402
+from tests._gemini_live_model import GEMINI_LIVE_MODEL  # noqa: E402
 
 GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai"
 
@@ -57,7 +59,7 @@ class TestGeminiChatCompletions:
             "/v1/chat/completions",
             headers={"Authorization": f"Bearer {api_key}"},
             json={
-                "model": "gemini-2.0-flash",
+                "model": GEMINI_LIVE_MODEL,
                 "messages": [
                     {"role": "user", "content": "What is 2+2? Reply with just the number."}
                 ],
@@ -84,7 +86,7 @@ class TestGeminiChatCompletions:
             "/v1/chat/completions",
             headers={"Authorization": f"Bearer {api_key}"},
             json={
-                "model": "gemini-2.0-flash",
+                "model": GEMINI_LIVE_MODEL,
                 "messages": [
                     {"role": "system", "content": "You are a helpful assistant. Be concise."},
                     {"role": "user", "content": "My name is TestUser123."},
@@ -105,7 +107,7 @@ class TestGeminiChatCompletions:
             "/v1/chat/completions",
             headers={"Authorization": f"Bearer {api_key}"},
             json={
-                "model": "gemini-2.0-flash",
+                "model": GEMINI_LIVE_MODEL,
                 "stream": True,
                 "messages": [{"role": "user", "content": "Count from 1 to 3."}],
             },
@@ -133,7 +135,7 @@ class TestGeminiChatCompletions:
             "/v1/chat/completions",
             headers={"Authorization": f"Bearer {api_key}"},
             json={
-                "model": "gemini-2.0-flash",
+                "model": GEMINI_LIVE_MODEL,
                 "messages": [{"role": "user", "content": "What is the weather in Paris?"}],
                 "tools": [
                     {
@@ -172,7 +174,7 @@ class TestGeminiChatCompletions:
             "/v1/chat/completions",
             headers={"Authorization": f"Bearer {api_key}"},
             json={
-                "model": "gemini-2.0-flash",
+                "model": GEMINI_LIVE_MODEL,
                 "messages": [
                     {
                         "role": "user",
@@ -214,7 +216,7 @@ class TestProxyStats:
         gemini_client.post(
             "/v1/chat/completions",
             headers={"Authorization": f"Bearer {api_key}"},
-            json={"model": "gemini-2.0-flash", "messages": [{"role": "user", "content": "Hi"}]},
+            json={"model": GEMINI_LIVE_MODEL, "messages": [{"role": "user", "content": "Hi"}]},
         )
 
         # Check stats
@@ -235,7 +237,7 @@ class TestErrorHandling:
         response = gemini_client.post(
             "/v1/chat/completions",
             headers={"Authorization": "Bearer invalid-key-123"},
-            json={"model": "gemini-2.0-flash", "messages": [{"role": "user", "content": "Hi"}]},
+            json={"model": GEMINI_LIVE_MODEL, "messages": [{"role": "user", "content": "Hi"}]},
         )
         # Should return 4xx error
         assert response.status_code >= 400

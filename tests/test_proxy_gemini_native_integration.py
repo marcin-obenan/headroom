@@ -12,10 +12,11 @@ import os
 
 import pytest
 
-# Skip entire module if no API key
-pytestmark = pytest.mark.skipif(
-    not os.environ.get("GEMINI_API_KEY"), reason="GEMINI_API_KEY not set"
-)
+# Skip entire module if no API key; opt-in via -m real_llm (excluded from default suite).
+pytestmark = [
+    pytest.mark.real_llm,
+    pytest.mark.skipif(not os.environ.get("GEMINI_API_KEY"), reason="GEMINI_API_KEY not set"),
+]
 
 pytest.importorskip("fastapi")
 pytest.importorskip("httpx")
@@ -23,6 +24,7 @@ pytest.importorskip("httpx")
 from fastapi.testclient import TestClient  # noqa: E402
 
 from headroom.proxy.server import ProxyConfig, create_app  # noqa: E402
+from tests._gemini_live_model import GEMINI_LIVE_MODEL  # noqa: E402
 
 
 @pytest.fixture
@@ -51,7 +53,7 @@ class TestGeminiNativeGenerateContent:
     def test_basic_generation(self, gemini_native_client, api_key):
         """Basic text generation works."""
         response = gemini_native_client.post(
-            f"/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}",
+            f"/v1beta/models/{GEMINI_LIVE_MODEL}:generateContent?key={api_key}",
             json={"contents": [{"parts": [{"text": "What is 2+2? Reply with just the number."}]}]},
         )
         assert response.status_code == 200
@@ -72,7 +74,7 @@ class TestGeminiNativeGenerateContent:
     def test_with_system_instruction(self, gemini_native_client, api_key):
         """System instruction works correctly."""
         response = gemini_native_client.post(
-            f"/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}",
+            f"/v1beta/models/{GEMINI_LIVE_MODEL}:generateContent?key={api_key}",
             json={
                 "contents": [{"parts": [{"text": "Hello"}]}],
                 "systemInstruction": {"parts": [{"text": "Always respond with exactly one word."}]},
@@ -87,7 +89,7 @@ class TestGeminiNativeGenerateContent:
     def test_multi_turn_conversation(self, gemini_native_client, api_key):
         """Multi-turn conversations maintain context."""
         response = gemini_native_client.post(
-            f"/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}",
+            f"/v1beta/models/{GEMINI_LIVE_MODEL}:generateContent?key={api_key}",
             json={
                 "contents": [
                     {"role": "user", "parts": [{"text": "My name is TestUser456."}]},
@@ -104,7 +106,7 @@ class TestGeminiNativeGenerateContent:
     def test_function_calling(self, gemini_native_client, api_key):
         """Function calling / tools work correctly."""
         response = gemini_native_client.post(
-            f"/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}",
+            f"/v1beta/models/{GEMINI_LIVE_MODEL}:generateContent?key={api_key}",
             json={
                 "contents": [{"parts": [{"text": "What is the weather in Tokyo?"}]}],
                 "tools": [
@@ -144,7 +146,7 @@ class TestGeminiNativeGenerateContent:
     def test_generation_config(self, gemini_native_client, api_key):
         """Generation config parameters are respected."""
         response = gemini_native_client.post(
-            f"/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}",
+            f"/v1beta/models/{GEMINI_LIVE_MODEL}:generateContent?key={api_key}",
             json={
                 "contents": [{"parts": [{"text": "Write a very short poem about AI."}]}],
                 "generationConfig": {"maxOutputTokens": 50, "temperature": 0.1},
@@ -169,7 +171,7 @@ class TestGeminiNativeCompression:
 
         # Send as model message (like tool returning data)
         response = gemini_native_client.post(
-            f"/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}",
+            f"/v1beta/models/{GEMINI_LIVE_MODEL}:generateContent?key={api_key}",
             json={
                 "contents": [
                     {"role": "user", "parts": [{"text": "Get items from database"}]},
@@ -197,7 +199,7 @@ class TestGeminiNativeCompression:
 
         # First request with data in user message
         response = gemini_native_client.post(
-            f"/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}",
+            f"/v1beta/models/{GEMINI_LIVE_MODEL}:generateContent?key={api_key}",
             json={
                 "contents": [
                     {"role": "user", "parts": [{"text": f"Analyze this data: {user_data}"}]}
@@ -215,7 +217,7 @@ class TestGeminiNativeStats:
         """Stats show requests under 'gemini' provider."""
         # Make a request
         gemini_native_client.post(
-            f"/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}",
+            f"/v1beta/models/{GEMINI_LIVE_MODEL}:generateContent?key={api_key}",
             json={"contents": [{"parts": [{"text": "Hi"}]}]},
         )
 
@@ -226,12 +228,12 @@ class TestGeminiNativeStats:
     def test_stats_track_model(self, gemini_native_client, api_key):
         """Stats track the specific model used."""
         gemini_native_client.post(
-            f"/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}",
+            f"/v1beta/models/{GEMINI_LIVE_MODEL}:generateContent?key={api_key}",
             json={"contents": [{"parts": [{"text": "Hi"}]}]},
         )
 
         stats = gemini_native_client.get("/stats").json()
-        assert "gemini-2.0-flash" in stats["requests"]["by_model"]
+        assert GEMINI_LIVE_MODEL in stats["requests"]["by_model"]
 
 
 class TestGeminiNativeErrorHandling:
@@ -240,7 +242,7 @@ class TestGeminiNativeErrorHandling:
     def test_invalid_api_key(self, gemini_native_client):
         """Invalid API key returns appropriate error."""
         response = gemini_native_client.post(
-            "/v1beta/models/gemini-2.0-flash:generateContent?key=invalid-key-123",
+            f"/v1beta/models/{GEMINI_LIVE_MODEL}:generateContent?key=invalid-key-123",
             json={"contents": [{"parts": [{"text": "Hi"}]}]},
         )
         assert response.status_code >= 400
@@ -256,7 +258,8 @@ class TestGeminiNativeErrorHandling:
     def test_empty_contents(self, gemini_native_client, api_key):
         """Empty contents handled gracefully."""
         response = gemini_native_client.post(
-            f"/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}", json={"contents": []}
+            f"/v1beta/models/{GEMINI_LIVE_MODEL}:generateContent?key={api_key}",
+            json={"contents": []},
         )
         # Should either return error or handle gracefully
         assert response.status_code in [200, 400]
@@ -268,7 +271,7 @@ class TestGeminiNativeHeaderAuth:
     def test_header_auth(self, gemini_native_client, api_key):
         """API key in header works."""
         response = gemini_native_client.post(
-            "/v1beta/models/gemini-2.0-flash:generateContent",
+            f"/v1beta/models/{GEMINI_LIVE_MODEL}:generateContent",
             headers={"x-goog-api-key": api_key},
             json={"contents": [{"parts": [{"text": "Hi"}]}]},
         )
@@ -281,7 +284,7 @@ class TestGeminiNativeCountTokens:
     def test_count_tokens_basic(self, gemini_native_client, api_key):
         """Basic token counting works."""
         response = gemini_native_client.post(
-            f"/v1beta/models/gemini-2.0-flash:countTokens?key={api_key}",
+            f"/v1beta/models/{GEMINI_LIVE_MODEL}:countTokens?key={api_key}",
             json={"contents": [{"parts": [{"text": "Hello, world!"}]}]},
         )
         assert response.status_code == 200
@@ -295,7 +298,7 @@ class TestGeminiNativeCountTokens:
     def test_count_tokens_with_system_instruction(self, gemini_native_client, api_key):
         """Token counting includes system instruction."""
         response = gemini_native_client.post(
-            f"/v1beta/models/gemini-2.0-flash:countTokens?key={api_key}",
+            f"/v1beta/models/{GEMINI_LIVE_MODEL}:countTokens?key={api_key}",
             json={
                 "contents": [{"parts": [{"text": "Hello"}]}],
                 "systemInstruction": {"parts": [{"text": "You are a helpful assistant."}]},
@@ -323,7 +326,7 @@ class TestGeminiNativeCountTokens:
 
         # Count tokens with large data in model message (which gets compressed)
         response = gemini_native_client.post(
-            f"/v1beta/models/gemini-2.0-flash:countTokens?key={api_key}",
+            f"/v1beta/models/{GEMINI_LIVE_MODEL}:countTokens?key={api_key}",
             json={
                 "contents": [
                     {"role": "user", "parts": [{"text": "Get items from database"}]},
@@ -348,7 +351,7 @@ class TestGeminiNativeCountTokens:
     def test_count_tokens_multi_turn(self, gemini_native_client, api_key):
         """Token counting works for multi-turn conversations."""
         response = gemini_native_client.post(
-            f"/v1beta/models/gemini-2.0-flash:countTokens?key={api_key}",
+            f"/v1beta/models/{GEMINI_LIVE_MODEL}:countTokens?key={api_key}",
             json={
                 "contents": [
                     {"role": "user", "parts": [{"text": "My name is Alice."}]},
@@ -365,7 +368,7 @@ class TestGeminiNativeCountTokens:
     def test_count_tokens_header_auth(self, gemini_native_client, api_key):
         """API key in header works for countTokens."""
         response = gemini_native_client.post(
-            "/v1beta/models/gemini-2.0-flash:countTokens",
+            f"/v1beta/models/{GEMINI_LIVE_MODEL}:countTokens",
             headers={"x-goog-api-key": api_key},
             json={"contents": [{"parts": [{"text": "Hello"}]}]},
         )

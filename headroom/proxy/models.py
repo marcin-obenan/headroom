@@ -103,6 +103,16 @@ class ProxyConfig:
     cloudcode_api_url: str | None = None  # Custom Cloud Code Assist API URL override
     vertex_api_url: str | None = None  # Custom Vertex AI regional API URL override
 
+    # Local proxy hardening
+    local_control_guard_enabled: bool = True
+    cors_allowed_origins: list[str] = field(default_factory=list)
+    custom_upstream_header_enabled: bool = False
+    custom_upstream_allowed_hosts: list[str] = field(default_factory=list)
+
+    # Context guard (ai-rules#79): "should this request exist at all?" — runs
+    # before compression. None = disabled (no behavior change).
+    context_guard: Any | None = None
+
     # Backend: "anthropic" (direct API), "litellm-*" (via LiteLLM), or "anyllm" (via any-llm)
     backend: str = "anthropic"
     bedrock_region: str = "us-west-2"

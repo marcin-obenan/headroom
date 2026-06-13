@@ -8,6 +8,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 import json
 import tempfile
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 from unittest.mock import Mock
@@ -58,9 +59,63 @@ def _reset_headroom_logger_propagation():
     capture is deterministic regardless of run order.
     """
     import logging as _logging
+    from logging.handlers import RotatingFileHandler
 
-    _logging.getLogger("headroom").propagate = True
+    headroom = _logging.getLogger("headroom")
+    # Drop file handlers left by proxy startup; they keep logs off the
+    # root/caplog path even after propagate is re-enabled.
+    headroom.handlers = [h for h in headroom.handlers if not isinstance(h, RotatingFileHandler)]
+    headroom.propagate = True
     yield
+
+
+# Port 8787 is the operator's live Headroom session proxy on this machine.
+# Tests must never SIGTERM it — see docs/plans/issue-79-composer-handoff.md.
+_SESSION_PROXY_PORT = int(os.environ.get("HEADROOM_LOCAL_PROXY_PORT", "8787"))
+
+
+@pytest.fixture(autouse=True)
+def _protect_live_session_proxy(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Block real kill/restart against the live session proxy port during tests.
+
+    Tests that assert kill behaviour must mock ``_kill_proxy_by_pid`` themselves.
+    Unwrap/wrap integration tests that only touch config should pass
+    ``--no-stop-proxy``; this guard catches everything else in full-suite runs.
+    """
+    import headroom.cli.wrap as wrap_mod
+
+    real_kill = wrap_mod._kill_proxy_by_pid
+
+    def _guarded_kill(pid: int, port: int) -> bool:
+        if port == _SESSION_PROXY_PORT and wrap_mod._check_proxy(port):
+            return True
+        return real_kill(pid, port)
+
+    monkeypatch.setattr(wrap_mod, "_kill_proxy_by_pid", _guarded_kill)
+
+
+@contextmanager
+def capture_logger_records(caplog: pytest.LogCaptureFixture, logger_name: str):
+    """Attach pytest's caplog handler to a specific logger (order-safe).
+
+    Proxy startup can disable propagation on ``headroom``; attaching
+    directly keeps caplog assertions reliable in full-suite runs.
+    """
+    import logging as _logging
+
+    target = _logging.getLogger(logger_name)
+    target.addHandler(caplog.handler)
+    previous_level = target.level
+    previous_propagate = target.propagate
+    target.setLevel(_logging.DEBUG)
+    # Avoid duplicate caplog records when the logger also propagates to root.
+    target.propagate = False
+    try:
+        yield caplog
+    finally:
+        target.removeHandler(caplog.handler)
+        target.setLevel(previous_level)
+        target.propagate = previous_propagate
 
 
 # =============================================================================

@@ -4,8 +4,8 @@ Sends aggregate-only stats (tokens saved, compression ratios, cache hit rates,
 performance overhead) to help improve Headroom.  No prompts, no content, no PII.
 
 On by default. Opt out with:
-    HEADROOM_TELEMETRY=off headroom proxy
-    headroom proxy --no-telemetry
+    HEADROOM_TELEMETRY=on headroom proxy
+    headroom proxy --telemetry
 """
 
 from __future__ import annotations
@@ -69,8 +69,8 @@ def _build_pipeline_timing(stats: dict) -> dict[str, object]:
 
 
 def is_telemetry_enabled() -> bool:
-    """Check if telemetry is enabled (on by default, opt out with env var)."""
-    val = os.environ.get("HEADROOM_TELEMETRY", "on").lower().strip()
+    """Check if telemetry is enabled (off by default, opt in with env var)."""
+    val = os.environ.get("HEADROOM_TELEMETRY", "off").lower().strip()
     return val not in _OFF_VALUES
 
 
@@ -125,7 +125,7 @@ class TelemetryBeacon:
             return
         self._task = asyncio.create_task(self._loop())
         logger.info(
-            "Telemetry: ENABLED (anonymous aggregate stats, opt out: HEADROOM_TELEMETRY=off)"
+            "Telemetry: ENABLED (anonymous aggregate stats, disable: HEADROOM_TELEMETRY=off)"
         )
 
     async def stop(self) -> None:

@@ -51,7 +51,7 @@ The person deploying and managing Headroom in production.
 ```yaml
 # ~/.headroom/config.yaml
 proxy:
-  host: 0.0.0.0
+  host: 127.0.0.1
   port: 8787
 
 compression:
@@ -139,7 +139,7 @@ The person assessing Headroom for organizational adoption.
 **Security Configuration:**
 ```bash
 # Maximum privacy settings
-HEADROOM_TELEMETRY=off
+HEADROOM_TELEMETRY=off  # default; keep explicit in privacy profiles
 HEADROOM_STATELESS=true
 headroom proxy --no-cache --no-optimize
 ```

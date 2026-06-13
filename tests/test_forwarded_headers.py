@@ -9,7 +9,6 @@ strict-secure: every forwarded header is ignored.
 
 from __future__ import annotations
 
-import logging
 from types import SimpleNamespace
 from typing import Any
 
@@ -25,6 +24,7 @@ from headroom.proxy.forwarded_headers import (
     resolve_client_ip,
     trusted_forwarded_headers,
 )
+from tests.conftest import capture_logger_records
 
 # ──────────────────────────────────────────────────────────────────
 # Fake-request helper
@@ -220,13 +220,16 @@ def test_non_allowlisted_peer_ignores_forwarded_and_logs(
         forwarded_proto="https",
         forwarded_host="api.example.com",
     )
-    with caplog.at_level(logging.WARNING, logger="headroom.proxy.forwarded_headers"):
+    with capture_logger_records(caplog, "headroom.proxy.forwarded_headers"):
+        caplog.clear()
         ip = resolve_client_ip(req)
         fwd = trusted_forwarded_headers(req)
     assert ip == "8.8.8.8"
     assert fwd == {"for": "", "proto": "", "host": ""}
     # Structured rejection event MUST be emitted with full context.
-    rejections = [r for r in caplog.records if r.message == "forwarded_headers_rejected"]
+    rejections = [
+        r for r in caplog.records if getattr(r, "event", None) == "forwarded_headers_rejected"
+    ]
     assert len(rejections) == 1, f"expected one rejection event, got {len(rejections)}"
     rec = rejections[0]
     # ``logging.makeLogRecord``-style: we set extras via ``extra=`` kwargs;
@@ -245,7 +248,8 @@ def test_no_forwarded_headers_no_rejection_log(
     """Direct client (no X-Forwarded-* at all) must NOT spam rejection logs."""
     monkeypatch.setenv(TRUSTED_GATEWAY_CIDRS_ENV, "10.0.0.0/8")
     req = _fake_request(peer_host="8.8.8.8")
-    with caplog.at_level(logging.WARNING, logger="headroom.proxy.forwarded_headers"):
+    with capture_logger_records(caplog, "headroom.proxy.forwarded_headers"):
+        caplog.clear()
         assert resolve_client_ip(req) == "8.8.8.8"
         assert trusted_forwarded_headers(req) == {"for": "", "proto": "", "host": ""}
     rejections = [r for r in caplog.records if r.message == "forwarded_headers_rejected"]

@@ -21,6 +21,8 @@ def _app() -> Any:
             openai_api_url="https://api.openai.test",
             gemini_api_url="https://api.gemini.test",
             cloudcode_api_url="https://cloudcode.test",
+            custom_upstream_header_enabled=True,
+            custom_upstream_allowed_hosts=["azure.example", "custom.example"],
             vertex_api_url="https://vertex.test",
         )
     )
@@ -194,6 +196,10 @@ def test_proxy_route_helpers_prefer_legacy_targets_and_gemini_passthrough() -> N
             "OPENAI_API_URL": "https://legacy.openai.test",
             "GEMINI_API_URL": "https://legacy.gemini.test",
             "VERTEX_API_URL": "https://legacy.vertex.test",
+            "config": ProxyConfig(
+                custom_upstream_header_enabled=True,
+                custom_upstream_allowed_hosts=["azure.example"],
+            ),
             "provider_runtime": type(
                 "Runtime",
                 (),

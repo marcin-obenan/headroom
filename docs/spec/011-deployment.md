@@ -17,7 +17,7 @@ RUN pip install headroom-ai
 EXPOSE 8787
 
 ENTRYPOINT ["headroom", "proxy"]
-CMD ["--host", "0.0.0.0", "--port", "8787"]
+CMD ["--host", "127.0.0.1", "--port", "8787"]
 ```
 
 **docker-compose.yml:**
@@ -27,7 +27,7 @@ services:
   headroom:
     image: headroom-ai/headroom:latest
     ports:
-      - "8787:8787"
+      - "127.0.0.1:8787:8787"
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - HEADROOM_MODE=token
@@ -54,7 +54,7 @@ pip install headroom-ai
 
 **Run:**
 ```bash
-headroom proxy --host 0.0.0.0 --port 8787
+headroom proxy --host 127.0.0.1 --port 8787
 ```
 
 ---
@@ -125,14 +125,14 @@ deployment:
 | `HEADROOM_HOST` | `127.0.0.1` | Proxy host |
 | `ANTHROPIC_API_KEY` | - | Anthropic API key |
 | `OPENAI_API_KEY` | - | OpenAI API key |
-| `HEADROOM_TELEMETRY` | enabled | Set to `off` to disable telemetry |
+| `HEADROOM_TELEMETRY` | disabled | Set to `on` to enable anonymous aggregate telemetry |
 
 ### Config File
 
 ```yaml
 # ~/.headroom/config.yaml
 proxy:
-  host: 0.0.0.0
+  host: 127.0.0.1
   port: 8787
 
 compression:

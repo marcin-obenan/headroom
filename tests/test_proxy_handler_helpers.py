@@ -55,9 +55,13 @@ class _PassthroughRequest:
     method = "GET"
     headers = {}
     url = SimpleNamespace(path="/favicon.ico", query="")
+    _body = b""
 
     async def body(self) -> bytes:
-        return b""
+        return self._body
+
+    async def stream(self):
+        yield self._body
 
 
 class _VertexPassthroughRequest:
@@ -67,9 +71,13 @@ class _VertexPassthroughRequest:
         path="/v1/projects/p/locations/us-central1/publishers/google/models/gemini-2.0-flash:generateContent",
         query="",
     )
+    _body = b'{"contents":[]}'
 
     async def body(self) -> bytes:
-        return b'{"contents":[]}'
+        return self._body
+
+    async def stream(self):
+        yield self._body
 
 
 class _VertexStreamPassthroughRequest:
@@ -79,9 +87,13 @@ class _VertexStreamPassthroughRequest:
         path="/v1/projects/p/locations/us-central1/publishers/google/models/gemini-2.0-flash:streamGenerateContent",
         query="alt=sse",
     )
+    _body = b'{"contents":[]}'
 
     async def body(self) -> bytes:
-        return b'{"contents":[]}'
+        return self._body
+
+    async def stream(self):
+        yield self._body
 
 
 class _VertexGeminiImageRequest:
@@ -93,7 +105,8 @@ class _VertexGeminiImageRequest:
         query="",
     )
 
-    async def body(self) -> bytes:
+    @property
+    def _body(self) -> bytes:
         return json.dumps(
             {
                 "contents": [
@@ -111,6 +124,12 @@ class _VertexGeminiImageRequest:
                 ]
             }
         ).encode("utf-8")
+
+    async def body(self) -> bytes:
+        return self._body
+
+    async def stream(self):
+        yield self._body
 
 
 class _VertexUsageClient:

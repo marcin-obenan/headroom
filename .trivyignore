@@ -1,0 +1,4 @@
+# CVE-2024-35515 is from sqlitedict via the optional lm-eval benchmark extra.
+# It is not installed by the proxy/default/local-Claude path and has no fixed
+# upstream release to pin. Keep this scoped to the specific no-fix advisory.
+CVE-2024-35515

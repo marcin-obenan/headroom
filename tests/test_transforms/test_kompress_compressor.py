@@ -12,6 +12,8 @@ import logging
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+from tests.conftest import capture_logger_records
+
 # ── Import safety (the whole point of the fix) ─────────────────────────
 
 
@@ -88,7 +90,8 @@ class TestKompressBackendSelection:
         import headroom.transforms.kompress_compressor as kmod
 
         monkeypatch.setenv("HEADROOM_KOMPRESS_BACKEND", "tpu")
-        with caplog.at_level(logging.WARNING, logger=kmod.logger.name):
+        caplog.clear()
+        with capture_logger_records(caplog, kmod.logger.name):
             assert kmod._selected_backend() == "auto"
 
         assert any(

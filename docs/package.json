@@ -37,5 +37,9 @@
 		"postcss": "^8.5.11",
 		"tailwindcss": "^4.2.2",
 		"typescript": "^5.9.3"
+	},
+	"overrides": {
+		"brace-expansion": "5.0.6",
+		"postcss": "$postcss"
 	}
 }

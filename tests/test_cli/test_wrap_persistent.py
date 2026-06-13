@@ -509,6 +509,10 @@ def test_ensure_proxy_restarts_for_flags_when_no_other_wrapper(monkeypatch) -> N
     monkeypatch.setattr(wrap_cli, "_check_proxy", lambda port: len(calls) == 0)
     monkeypatch.setattr(wrap_cli, "_query_proxy_health", lambda port: health)
     monkeypatch.setattr(wrap_cli, "_live_proxy_clients", lambda *a, **kw: [])
+    # Keep the unit test hermetic: never probe the real OS port (a dev machine
+    # often has a live proxy on 8787, which would make this restart-path test
+    # fail with EADDRINUSE). Mirrors the sibling tests above.
+    monkeypatch.setattr(wrap_cli, "_port_bind_error", lambda port: None)
     monkeypatch.setattr(
         wrap_cli,
         "_kill_proxy_by_pid",

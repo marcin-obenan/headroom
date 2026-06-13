@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 from headroom.providers.claude import proxy_base_url as claude_proxy_base_url
@@ -28,6 +30,34 @@ def build_proxy_targets(port: int, project: str | None = None) -> CursorProxyTar
         openai_base_url=with_project_prefix(codex_proxy_base_url(port), project),
         anthropic_base_url=with_project_prefix(claude_proxy_base_url(port), project),
     )
+
+
+def build_launch_env(
+    port: int,
+    environ: Mapping[str, str] | None = None,
+    project: str | None = None,
+) -> tuple[dict[str, str], list[str]]:
+    """Build environment variables for the Cursor Agent CLI through the proxy.
+
+    Mirrors the other Pattern-A launchers (claude/codex/aider): the returned
+    ``env`` is a copy of ``environ`` with ``OPENAI_BASE_URL`` and
+    ``ANTHROPIC_BASE_URL`` pointed at the local Headroom proxy, so the headless
+    ``cursor-agent`` CLI routes every provider call through Headroom.
+
+    ``project`` (the wrap launch directory) is encoded as a ``/p/<name>``
+    base-URL prefix because Cursor cannot send custom headers; the proxy strips
+    it and attributes savings per project. The second tuple element is a
+    display list for the wrap banner.
+    """
+    env = dict(environ or os.environ)
+    openai_base_url = with_project_prefix(codex_proxy_base_url(port), project)
+    anthropic_base_url = with_project_prefix(claude_proxy_base_url(port), project)
+    env["OPENAI_BASE_URL"] = openai_base_url
+    env["ANTHROPIC_BASE_URL"] = anthropic_base_url
+    return env, [
+        f"OPENAI_BASE_URL={openai_base_url}",
+        f"ANTHROPIC_BASE_URL={anthropic_base_url}",
+    ]
 
 
 def render_setup_lines(port: int, project: str | None = None) -> list[str]:

@@ -6,12 +6,17 @@ from __future__ import annotations
 import json
 import logging
 from typing import Any, cast
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
-from fastapi import FastAPI, Request, WebSocket
+from fastapi import FastAPI, HTTPException, Request, WebSocket
 from fastapi.responses import Response
 
 from headroom.proxy.handlers.openai import _resolve_codex_routing_headers
+from headroom.proxy.helpers import _read_limited_request_body
+from headroom.proxy.local_security import (
+    close_websocket_if_local_guard_rejects,
+    default_loopback_origins,
+)
 
 logger = logging.getLogger("headroom.proxy.routes")
 
@@ -28,6 +33,56 @@ def _api_target(proxy: Any, provider_name: str) -> str:
     return cast(str, getattr(proxy, legacy_attr, proxy.provider_runtime.api_target(provider_name)))
 
 
+def _configured_custom_base_url(proxy: Any, raw_base_url: str) -> str:
+    config = getattr(proxy, "config", None)
+    if not getattr(config, "custom_upstream_header_enabled", False):
+        raise HTTPException(
+            status_code=403,
+            detail="x-headroom-base-url is disabled by default; configure an allowed host to enable it",
+        )
+
+    parsed = urlparse(raw_base_url.strip())
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc or not parsed.hostname:
+        raise HTTPException(status_code=403, detail="Invalid x-headroom-base-url")
+
+    allowed_hosts = {
+        str(host).strip().lower().rstrip("/")
+        for host in getattr(config, "custom_upstream_allowed_hosts", [])
+        if str(host).strip()
+    }
+    host = parsed.hostname.lower()
+    netloc = parsed.netloc.lower()
+    if not allowed_hosts or (host not in allowed_hosts and netloc not in allowed_hosts):
+        raise HTTPException(status_code=403, detail="x-headroom-base-url host is not allowed")
+
+    return raw_base_url.rstrip("/")
+
+
+def _custom_base_from_headers(proxy: Any, headers: dict[str, str]) -> str | None:
+    raw_base_url = headers.get("x-headroom-base-url")
+    if not raw_base_url:
+        return None
+    return _configured_custom_base_url(proxy, raw_base_url)
+
+
+def _cors_allowed_origins(proxy: Any) -> list[str]:
+    config = getattr(proxy, "config", None)
+    configured = getattr(config, "cors_allowed_origins", None) or []
+    if configured:
+        return list(configured)
+    port = int(getattr(config, "port", 8787))
+    return default_loopback_origins(port)
+
+
+async def _reject_websocket_if_needed(proxy: Any, websocket: WebSocket) -> bool:
+    config = getattr(proxy, "config", None)
+    return await close_websocket_if_local_guard_rejects(
+        websocket,
+        enabled=bool(getattr(config, "local_control_guard_enabled", True)),
+        allowed_origins=_cors_allowed_origins(proxy),
+    )
+
+
 def _select_passthrough_base_url(proxy: Any, headers: dict[str, str]) -> str:
     # Codex CLI subscription mode hits a wide surface under
     # `/backend-api/*` (rate-limit polling, agent identity, JWT
@@ -42,9 +97,9 @@ def _select_passthrough_base_url(proxy: Any, headers: dict[str, str]) -> str:
     if headers.get("x-goog-api-key"):
         return _api_target(proxy, "gemini")
     if headers.get("api-key"):
-        azure_base = headers.get("x-headroom-base-url", "")
-        if azure_base:
-            return azure_base.rstrip("/")
+        custom_base = _custom_base_from_headers(proxy, headers)
+        if custom_base:
+            return custom_base
     provider_name = proxy.provider_runtime.model_metadata_provider(headers)
     return _api_target(proxy, provider_name)
 
@@ -293,7 +348,10 @@ async def _handle_chatgpt_model_metadata(
     if request.url.query:
         url = f"{url}?{request.url.query}"
 
-    body = await request.body()
+    try:
+        body = await _read_limited_request_body(request)
+    except ValueError as exc:
+        return Response(content=str(exc), status_code=413)
     try:
         assert proxy.http_client is not None
         resp = await proxy.http_client.request(
@@ -379,10 +437,14 @@ def register_provider_routes(app: FastAPI, proxy: Any) -> None:
 
     @app.websocket("/v1/responses")
     async def openai_responses_ws(websocket: WebSocket):
+        if await _reject_websocket_if_needed(proxy, websocket):
+            return
         await proxy.handle_openai_responses_ws(websocket)
 
     @app.websocket("/v1/codex/responses")
     async def openai_v1_codex_responses_ws(websocket: WebSocket):
+        if await _reject_websocket_if_needed(proxy, websocket):
+            return
         await proxy.handle_openai_responses_ws(websocket)
 
     @app.api_route("/v1/responses/{sub_path:path}", methods=["GET", "POST", "DELETE"])
@@ -399,7 +461,10 @@ def register_provider_routes(app: FastAPI, proxy: Any) -> None:
         if request.url.query:
             url = f"{url}?{request.url.query}"
 
-        body = await request.body()
+        try:
+            body = await _read_limited_request_body(request)
+        except ValueError as exc:
+            return Response(content=str(exc), status_code=413)
         try:
             assert proxy.http_client is not None
             resp = await proxy.http_client.request(
@@ -424,10 +489,14 @@ def register_provider_routes(app: FastAPI, proxy: Any) -> None:
 
     @app.websocket("/backend-api/responses")
     async def openai_codex_responses_ws(websocket: WebSocket):
+        if await _reject_websocket_if_needed(proxy, websocket):
+            return
         await proxy.handle_openai_responses_ws(websocket)
 
     @app.websocket("/backend-api/codex/responses")
     async def openai_codex_nested_responses_ws(websocket: WebSocket):
+        if await _reject_websocket_if_needed(proxy, websocket):
+            return
         await proxy.handle_openai_responses_ws(websocket)
 
     @app.api_route("/backend-api/responses/{sub_path:path}", methods=["GET", "POST", "DELETE"])
@@ -753,9 +822,9 @@ def register_provider_routes(app: FastAPI, proxy: Any) -> None:
 
     @app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
     async def passthrough(request: Request, path: str):
-        custom_base = request.headers.get("x-headroom-base-url")
+        custom_base = _custom_base_from_headers(proxy, dict(request.headers))
         if custom_base:
-            return await proxy.handle_passthrough(request, custom_base.rstrip("/"))
+            return await proxy.handle_passthrough(request, custom_base)
         return await proxy.handle_passthrough(
             request,
             _select_passthrough_base_url(proxy, dict(request.headers)),
